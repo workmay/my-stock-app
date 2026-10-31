@@ -13,7 +13,7 @@ st.title("📈 台指期貨現貨終極操盤儀表板")
 st.caption("究極完全體：全球多資產相容版 (支援股票、ETF、黃金現貨與美股標的)")
 
 # ==============================================================================
-# 🧠 二、個股操盤大腦判則核心 (🎯 究極升級：全平面無縮排結構，徹底杜絕 229 行地獄)
+# 🧠 二、個股操盤大腦判則核心 (全平面無縮排結構)
 # ==============================================================================
 def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long, stop_loss_short):
     st.markdown("### 🔮 標的雙向操盤行動指南：")
@@ -207,3 +207,4 @@ if stock_input:
     try:
         process_stock_dashboard(stock_input)
     except Exception as e:
+        st.error(f"⚠️ 該標的在雲端解析時遇到格式限制，暫時無法精算指標。錯誤代碼: {str(e)}")
