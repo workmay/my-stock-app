@@ -53,7 +53,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：修復文字截斷、雙向作戰計畫、動態大盤與自選 Watchlist")
+st.caption("🚀 台新旗艦完全體：修復語法錯誤、雙向作戰計畫、動態大盤與自選 Watchlist")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -195,14 +195,10 @@ def process_market_dashboard(current_date_str):
 
     st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
-    st.warning("""
-    🛡️ **【大盤操盤戰術總結】：**
-    * **多空定調：明確偏空**。目前加權指數大幅跌破 20 日生命線，且外資期貨空單維持在高檔，現貨同步調節。
-    * **操作策略：** 以反彈逢高佈局空單或買進避險為主，嚴格依據均線作為防守停損點。
-    """)
+    st.warning("🛡️ 【大盤操盤戰術總結】：目前加權指數大幅跌破 20 日生命線，建議以反彈逢高佈局空單為主，嚴格控管倉位。")
 
 # ==============================================================================
-# 🗂️ 五、個股大腦資料安全撈取與進階指標運算核心 (防截斷改良版)
+# 🗂️ 五、個股大腦資料安全撈取與進階指標運算核心
 # ==============================================================================
 def process_stock_dashboard(stock_number):
     tw_stock_dict = {
@@ -272,7 +268,6 @@ def process_stock_dashboard(stock_number):
     df['Hist'] = df['MACD'] - df['Signal']
     
     today_data = df.iloc[-1]
-    prev_data = df.iloc[-2]
     
     t_price = float(today_data['Close'])
     t_open = float(today_data['Open'])
@@ -302,7 +297,7 @@ def process_stock_dashboard(stock_number):
         tick_str = "N/A"
     
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
-    st.caption(f"ℹ️ **資料來源**：Yahoo Finance 即時動態 | 📊 **數據最新生效交易日**：{trade_date_str}")
+    st.caption(f"ℹ️ **資料來源** : Yahoo Finance 即時動態 | 📊 **數據最新生效交易日** : {trade_date_str}")
     
     col4, col5, col6 = st.columns(3)
     col4.metric("最新收盤價", f"{t_price:,.2f} 元")
@@ -314,7 +309,6 @@ def process_stock_dashboard(stock_number):
     col8.metric("每跳一檔損益參考", tick_str)
     col9.metric("目前 RSI 指標", f"{t_rsi:.2f}")
 
-    # 改用自訂 HTML 卡片顯示 KD 與布林上下軌，徹底解決文字太長被截斷成 ... 的問題
     col_k1, col_k2, col_k3 = st.columns(3)
     render_custom_metric(col_k1, "KD 指標 (K / D)", f"{t_k:.1f} / {t_d:.1f}", "短線動能指標")
     render_custom_metric(col_k2, "MACD 柱狀體 (Hist)", f"{t_macd_hist:.2f}", "趨勢強弱動能")
@@ -343,7 +337,7 @@ with tab1:
 
 with tab2:
     st.markdown("### 🔴 台新證券 / 台新期貨 盤中即時報價串接介面")
-    st.info("💡 **說明**：本區專為台新客戶設計。可登入台新 API 帳號密碼或輸入憑證金鑰，於盤中（09:00 - 13:30）連線取得零延遲即時行情跳動。")
+    st.info("💡 **說明** : 本區專為台新客戶設計。可登入台新 API 帳號密碼或輸入憑證金鑰，於盤中（09:00 - 13:30）連線取得零延遲即時行情跳動。")
     
     with st.expander("🔑 點此展開 台新帳號登入與 API 設定"):
         ts_user = st.text_input("台新身分證字號 / 交易帳號")
