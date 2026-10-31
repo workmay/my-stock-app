@@ -103,7 +103,7 @@ def process_market_dashboard(current_date_str):
         st.info("🗒【 大盤氣象站：目前處於月線附近拉鋸震盪格局 】\n\n➡️ 操盤策略：多空未分勝負，建議放慢交易節奏，嚴格控管資金水位。")
 
 # ==============================================================================
-# 🗂️ 五、個股大腦資料安全撈取核心 (含寬鬆黃金現貨攔截)
+# 🗂️ 五、個股大腦資料安全撈取核心 (嚴格黃金現貨攔截)
 # ==============================================================================
 def process_stock_dashboard(stock_number):
     tw_stock_dict = {
@@ -127,9 +127,10 @@ def process_stock_dashboard(stock_number):
     
     df, ticker = None, None
     
-    if "AU" in stock_number:
+    # 🌟 嚴格黃金現貨專屬備援機制：只允許真實存在的 AU9901 與 AU9902
+    if stock_number in ["AU9901", "AU9902"]:
         dates = pd.date_range(end=datetime.datetime.today(), periods=90, freq='B')
-        base_price = 15800.0 if "9901" in stock_number else 15750.0
+        base_price = 15800.0 if stock_number == "AU9901" else 15750.0
         np.random.seed(42)
         prices = base_price + np.cumsum(np.random.randn(90) * 45)
         df = pd.DataFrame({
