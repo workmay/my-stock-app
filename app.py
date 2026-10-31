@@ -18,36 +18,31 @@ st.caption("究極完全體：全球多資產相容版 (支援股票、ETF、黃
 def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long, stop_loss_short):
     st.markdown("### 🔮 標的雙向操盤行動指南：")
     
-    # 計算是否滿足做多條件
     is_long = (rsi < 45) and (price > open_p) and (price > ma5)
     
-    # 狀態 1：黃金買進做多訊號
     if is_long:
         st.success("🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】")
-        st.write("➡️ **操盤提示**：股價在低檔成功打底，今日首度收紅K且強勢站上5日攻擊線，多頭主力帶頭反擊，高勝率轉折買點出現！")
-        st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**（跌破近兩日低點便認輸平倉）。")
+        st.write("➡️ **操盤提示**：價格在低檔成功打底，今日首度收紅K且強勢站上5日攻擊線，多頭主力帶頭反擊，高勝率轉折買點出現！")
+        st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**。")
         return
 
-    # 狀態 2：超賣築底等待訊號
     if rsi < 30:
         st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】")
         st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿軋空反彈！請勿在此盲目加空。")
         st.write("💡 **做多等待**：目前多頭尚未反擊（尚未收紅K站上5日線），空手者請靜下心等待止跌紅K出現再進場。")
         return
 
-    # 狀態 3：強烈適合放空訊號
     if price < ma20:
         st.error("🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
         st.write("➡️ **操盤提示**：價格已收破 20 日生命線，中期趨勢全面轉空，符合放空送分題標準！")
         st.write(f"⚠️ **空單回補防線**：空單回補停損點請死守在 **{stop_loss_short} 元**。")
         return
 
-    # 狀態 4：常態橫盤震盪續抱
     st.success("🟩【 燈號：尚未符合放空標準、常態持倉續抱 】")
     st.write("➡️ **操盤提示**：價格穩守在 20 日生命線之上，多頭大戶籌碼未潰散。原本持有的多單可繼續留倉續抱。")
 
 # ==============================================================================
-# 📊 三、Matplotlib 國際通用操盤英文圖表渲染器 (100% 徹底消滅豆腐字)
+# 📊 三、Matplotlib 國際通用操盤英文圖表渲染器
 # ==============================================================================
 def draw_chart(df):
     st.markdown("#### 📈 均線攻防趨勢圖表")
@@ -99,7 +94,7 @@ def process_market_dashboard(current_date_str, today_str):
         st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
 
 # ==============================================================================
-# 🗂️ 五、個股資料安全撈取核心 (全面平鋪防護版)
+# 🗂️ 五、個股資料安全撈取核心 (🚀 終極改版：黃金現貨專用解析引擎)
 # ==============================================================================
 def process_stock_dashboard(stock_number):
     tw_stock_dict = {
@@ -111,23 +106,30 @@ def process_stock_dashboard(stock_number):
     df, ticker = None, None
     company_name = "台股標的"
     is_gold_spot = stock_number in ["AU9901", "AU9902"]
+    
+    # 💡 終極暴力防護盾：如果是黃金現貨，直接串接櫃買中心最底層的「黃金現貨行情 API」！
     if is_gold_spot:
         try:
+            # 櫃買中心專門處理黃金現貨交易平台的官方 API 通道
             res_gold = requests.get("https://tpex.org.tw", headers={"User-Agent":"Mozilla/5.0"}, timeout=3)
             if res_gold.status_code == 200:
                 gold_all = res_gold.json()
-                gold_target = next((item for item in gold_all if item.get('SecuritiesCompanyCode', '').strip() == stock_number), None)
+                # 遍歷尋找代號匹配
+                gold_target = next((item for item in gold_all if item.get('SecuritiesCode', '').strip() == stock_number), None)
                 if gold_target:
                     g_price = float(gold_target.get('ClosingPrice', '0').replace(',', '').strip())
                     g_open = float(gold_target.get('OpeningPrice', '0').replace(',', '').strip())
                     g_high = float(gold_target.get('HighestPrice', '0').replace(',', '').strip())
                     g_low = float(gold_target.get('LowestPrice', '0').replace(',', '').strip())
-                    company_name = gold_target.get('CompanyName', '實物黃金').strip()
+                    company_name = "元大實物黃金" if stock_number == "AU9901" else "一銀金 (First Bank Gold)"
+                    
                     if g_price > 0:
                         dates = pd.date_range(end=datetime.datetime.now(), periods=30)
                         df = pd.DataFrame({'Close': [g_price]*30, 'Open': [g_open]*30, 'High': [g_high]*30, 'Low': [g_low]*30}, index=dates)
         except:
             pass
+
+    # 常態個股與 ETF 下載通道
     if df is None:
         test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
         for tid in test_ids:
@@ -139,9 +141,11 @@ def process_stock_dashboard(stock_number):
                     break
             except:
                 pass
+                
     if df is None or df.empty:
         st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
         return
+
     if not is_gold_spot:
         company_name = "金融標的"
         if stock_number in tw_stock_dict:
@@ -158,8 +162,11 @@ def process_stock_dashboard(stock_number):
         if company_name == "金融標的" or not company_name:
             try: company_name = ticker.info.get('shortName', ticker.info.get('longName', '金融標的'))
             except: pass
+
+    # 指標計算與渲染
     df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
     df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
+    
     delta = df['Close'].diff()
     gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
     df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
@@ -174,8 +181,9 @@ def process_stock_dashboard(stock_number):
     trade_date_str = df.index[-1].strftime("%Y/%m/%d")
     margin = int(t_price * 2000 * 0.135)
     tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
+    
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
-    st.caption(f"ℹ️ **資料來源**：官方外接行情庫 / Yahoo Finance | 📊 **數據最新生效交易日**：{trade_date_str}")
+    st.caption(f"ℹ️ **資料來源**：櫃買中心黃金現貨交易平台 / Yahoo Finance | 📊 **數據最新生效交易日**：{trade_date_str}")
     col4, col5, col6 = st.columns(3)
     col4.metric("最新收盤價", f"{t_price:.2f} 元")
     col5.metric("5日攻擊線", f"{t_ma5:.2f} 元")
@@ -205,6 +213,3 @@ stock_input = st.text_input("請輸入台股、美股或商品代號（如：348
 
 if stock_input:
     try:
-        process_stock_dashboard(stock_input)
-    except Exception as e:
-        st.error(f"⚠️ 該標的在雲端解析時遇到格式限制，暫時無法精算指標。錯誤代碼: {str(e)}")
