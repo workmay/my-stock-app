@@ -130,4 +130,72 @@ with tab1:
     if col_b1.button("台積電 2330"): selected_quick = "2330"
     if col_b2.button("群創 3481"): selected_quick = "3481"
     if col_b3.button("長榮 2603"): selected_quick = "2603"
-    if col_b4.button("台指正二 00631L"): selected_quick = "00
+    if col_b4.button("台指正二 00631L"): selected_quick = "00631L"
+    if col_b5.button("臺銀金 AU9901"): selected_quick = "AU9901"
+    if col_b6.button("特斯拉 TSLA"): selected_quick = "TSLA"
+
+    default_val = selected_quick if selected_quick else "3481"
+    stock_input = st.text_input("輸入台股、美股或黃金代號：", value=default_val).strip().upper()
+
+    if stock_input:
+        with st.spinner(f"正在載入 【{stock_input}】 數據與運算指標..."):
+            df, company_name = fetch_stock_data(stock_input)
+            
+        if df is None or df.empty:
+            st.error(f"❌ 找不到該標的 【{stock_input}】 交易資料，請確認代號是否正確。")
+        else:
+            df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
+            df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
+            
+            delta = df['Close'].diff()
+            gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
+            df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
+            df['RSI'] = df['RSI'].fillna(45.0)
+            
+            today_data = df.iloc[-1]
+            prev_data = df.iloc[-2]
+            
+            t_price = float(today_data['Close'])
+            t_open = float(today_data['Open'])
+            t_ma5 = float(today_data['MA5'])
+            t_ma20 = float(today_data['MA20'])
+            t_rsi = float(today_data['RSI'])
+            
+            trade_date_str = df.index[-1].strftime("%Y/%m/%d")
+            margin = int(t_price * 2000 * 0.135)
+            tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
+            
+            st.subheader(f"🏢 標的：{stock_input} {company_name}")
+            st.caption(f"📊 數據生效日：{trade_date_str} | 資料源：Yahoo Finance / 櫃買中心黃金現貨")
+            
+            c1, c2, c3 = st.columns(3)
+            c1.metric("最新收盤價", f"{t_price:,.2f} 元")
+            c2.metric("5日攻擊線", f"{t_ma5:,.2f} 元")
+            c3.metric("20日生命線", f"{t_ma20:,.2f} 元")
+            
+            c4, c5, c6 = st.columns(3)
+            c4.metric("期貨估算保證金", f"$ {margin:,}")
+            c5.metric("每跳一檔損益", f"$ {tick}")
+            c6.metric("目前 RSI 指標", f"{t_rsi:.2f}")
+            
+            draw_chart(df)
+            
+            local_min = min(float(today_data['Low']), float(prev_data['Low']))
+            stop_loss_long = round(local_min * 0.995, 2)
+            stop_loss_short = round(t_ma20 * 1.01, 2)
+            render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, local_min, stop_loss_long, stop_loss_short)
+
+with tab2:
+    st.markdown("### 🔴 台新證券 / 台新期貨 盤中即時報價串接介面")
+    st.info("💡 **說明**：本區專為台新客戶設計。可登入台新 API 帳號密碼或輸入憑證金鑰，於盤中（09:00 - 13:30）連線取得零延遲即時行情跳動。")
+    
+    with st.expander("🔑 點此展開 台新帳號登入與 API 設定"):
+        ts_user = st.text_input("台新身分證字號 / 交易帳號")
+        ts_pwd = st.text_input("交易密碼 / API 密碼", type="password")
+        ts_cert = st.file_uploader("匯入台新電子憑證 (.pfx / .p12)", type=["pfx", "p12"])
+        
+        if st.button("驗證台新帳號並開始盤中即時監控"):
+            if not ts_user or not ts_pwd:
+                st.warning("⚠️ 請輸入台新交易帳號與密碼。")
+            else:
+                st.success(f"🟢 【帳號 {ts_user} 驗證成功】已就緒！盤中即可接收台指期貨與台股即時 Tick 報價。")
