@@ -171,8 +171,21 @@ def process_stock_dashboard(stock_number):
     t_rsi = float(today_data['RSI'])
     
     trade_date_str = df.index[-1].strftime("%Y/%m/%d")
-    margin = int(t_price * 2000 * 0.135)
-    tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
+    
+    # 檢查是否有股票期貨
+    has_stock_future = stock_number in [
+        "2330", "2317", "2303", "3481", "2409", "3260", 
+        "3231", "2603", "2609", "2615", "2884", "0050", "00631L"
+    ]
+    
+    if has_stock_future:
+        margin = int(t_price * 2000 * 0.135)
+        tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
+        margin_str = f"$ {margin:,}"
+        tick_str = f"$ {tick}"
+    else:
+        margin_str = "N/A (無個股期)"
+        tick_str = "N/A"
     
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
     st.caption(f"ℹ️ **資料來源**：Yahoo Finance 全球金融資料庫 | 📊 **數據最新生效交易日**：{trade_date_str}")
@@ -183,8 +196,8 @@ def process_stock_dashboard(stock_number):
     col6.metric("20日生命線", f"{t_ma20:,.2f} 元")
     
     col7, col8, col9 = st.columns(3)
-    col7.metric("期貨估算保證金參考", f"$ {margin:,}")
-    col8.metric("每跳一檔損益參考", f"$ {tick}")
+    col7.metric("期貨估算保證金參考", margin_str)
+    col8.metric("每跳一檔損益參考", tick_str)
     col9.metric("目前 RSI 指標", f"{t_rsi:.2f}")
     
     draw_chart(df)
