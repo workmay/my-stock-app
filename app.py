@@ -6,7 +6,7 @@ import yfinance as yf
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("24小時萬能保底版：支援股票、ETF、黃金現貨與美股，假日全天候隨時可用")
+st.caption("24小時萬能保底版：支援股票, ETF, 黃金現貨與美股, 假日全天候隨時可用")
 
 # 💡 全局繁體中文強制對照字典 (100% 解決英文、亂碼、台股個股的問題)
 tw_stock_dict = {
@@ -20,74 +20,77 @@ tw_stock_dict = {
 st.markdown("---")
 st.markdown("### 🏢 一、個股期貨現貨狙擊偵測器")
 
-# 🎯 2. 搜尋欄位核心：這個欄位現在是完全獨立的，雲端 3 秒內 100% 絕對會強制浮現！
+# 🎯 2. 搜尋欄位核心
 stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、3260、AU9902、TSLA）：", value="3481")
+
+# 💡 使用快取與強健的資料抓取函式，避免 Yahoo Finance 偶發逾時導致資料不見
+@st.cache_data(ttl=600)  # 快取 10 分鐘
+def get_stock_data(ticker):
+    test_ids = [f"{ticker}.TW", f"{ticker}.TWO", f"{ticker}.WO", ticker]
+    for tid in test_ids:
+        try:
+            df_test = yf.Ticker(tid).history(period="3mo")
+            if df_test is not None and not df_test.empty:
+                return df_test
+        except Exception:
+            continue
+    return None
 
 if stock_input:
     stock_number = stock_input.strip().upper()
     company_name = tw_stock_dict.get(stock_number, "台股標的")
     
-    # 💡 智慧分流測試陣列：假日適用，Yahoo 歷史資料庫 24 小時不打烊
-    test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", f"{stock_number}.WO", stock_number]
-    df = None
-    
-    for tid in test_ids:
-        try:
-            df_test = yf.Ticker(tid).history(period="3mo")
-            if not df_test.empty:
-                df = df_test
-                break
-        except:
-            pass
-            
+    # 呼叫快取抓取資料
+    df = get_stock_data(stock_number)
+         
     if df is None or df.empty:
-        st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
+        st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確，或稍後再試。")
     else:
         # 計算 5日與20日線
         df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
         df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
-        
+         
         # 計算 RSI
         delta = df['Close'].diff()
         gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
         df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
         df['RSI'] = df['RSI'].fillna(45.0)
-        
+         
         today_data = df.iloc[-1]
         t_price = float(today_data['Close'])
         t_open = float(today_data['Open'])
         t_ma5 = float(today_data['MA5'])
         t_ma20 = float(today_data['MA20'])
         t_rsi = float(today_data['RSI'])
-        
+         
         trade_date_str = df.index[-1].strftime("%Y/%m/%d")
         margin = int(t_price * 2000 * 0.135)
         tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
-        
+         
         # 呈現彩色風控卡片
         st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
         st.caption(f"ℹ️ **資料來源**：Yahoo Finance 歷史資料庫 | 📊 **數據最新生效交易日**：{trade_date_str}")
-        
+         
         col1, col2, col3 = st.columns(3)
         col1.metric("最新收盤價", f"{t_price:.2f} 元")
         col2.metric("5日攻擊線", f"{t_ma5:.2f} 元")
         col3.metric("20日生命線", f"{t_ma20:.2f} 元")
-        
+         
         col4, col5, col6 = st.columns(3)
         col4.metric("期貨估算保證金", f"$ {margin:,}")
         col5.metric("每跳一檔損益參考", f"$ {tick}")
         col6.metric("目前 RSI 指標", f"{t_rsi:.2f}")
-        
-        # 💡 使用 Streamlit 內建原生高質感折線圖表 (100% 支援中文、流暢、絕對不產生豆腐字！)
+         
+        # 📈 繪製均線趨勢圖表
         st.markdown("#### 📈 均線攻防趨勢圖表 (Price / MA5 / MA20)")
         chart_data = df[['Close', 'MA5', 'MA20']].copy()
         chart_data.columns = ['Price', 'MA5', 'MA20']
         st.line_chart(chart_data)
-        
+         
         # 操盤指南
         st.markdown("### 🔮 標的雙向操盤行動指南：")
         is_long = (t_rsi < 45) and (t_price > t_open) and (t_price > t_ma5)
-        
+         
         if is_long:
             local_min = min(float(today_data['Low']), float(df.iloc[-2]['Low']))
             stop_loss_long = round(local_min * 0.995, 2)
