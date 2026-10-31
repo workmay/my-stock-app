@@ -1,41 +1,63 @@
 import streamlit as st
 import yfinance as yf
-import datetime
+import requests
 
 # 1. 設定網頁標題與外觀
 st.set_page_config(page_title="個股期貨狙擊儀表板", layout="centered")
 
 st.title("📉 個股期貨空頭狙擊儀表板")
-st.caption("全自動智慧版：免手動維護資料，全台股/美股自動查詢真實中文名稱")
+st.caption("終極完美版：修正排版換行錯誤，內建多重資料庫自動備援中文名稱")
+
+# 保底常用中文名稱表 (當網路繁忙、Yahoo與證交所同時斷線時的最後防線)
+tw_stock_dict = {
+    "3481": "群創", "2409": "友達", "2330": "台積電", "2317": "鴻海",
+    "2303": "聯電", "3231": "緯創", "2603": "長榮", "2609": "陽明",
+    "2615": "萬海", "2884": "玉山金"
+}
 
 # 2. 自由輸入文字框
 stock_number = st.text_input("⌨️ 請輸入台股個股代號（如：3481、2884、2330）：", value="3481", max_chars=10)
 
 if stock_number:
     stock_number = stock_number.strip()
-    # 判斷是否為台股，若使用者輸入純數字，自動幫他補上 .TW
     if stock_number.isdigit():
         stock_id = f"{stock_number}.TW"
     else:
         stock_id = stock_number.upper()
         
-    with st.spinner("⏳ 雲端後台正在撈取最新數據與中文名稱..."):
+    with st.spinner("⏳ 雲端後台正在連線下載並精算數據..."):
         try:
-            # 3. 雲端後台直連官方數據庫
+            # 3. 直連數據庫抓取 K 線資料
             ticker = yf.Ticker(stock_id)
             df = ticker.history(period="3mo")
             
             if df.empty:
                 st.error("❌ 找不到該股交易資料，請確認股號是否正確。")
             else:
-                # 💡 終極優化：使用內建最穩定的 shortName 欄位，在雲端能 100% 吐出繁體中文！
-                try:
-                    company_name = ticker.info.get('shortName', '台股個股')
-                    # 防呆機制：如果抓出來包含過多英文或為空，則嘗試換另一個欄位
-                    if not company_name or company_name == 'None':
-                        company_name = ticker.info.get('longName', '台股個股')
-                except:
-                    company_name = "台股個股"
+                # 💡 核心升級：中文名稱三重備援防護網
+                company_name = "台股個股"
+                
+                # 第一重：嘗試從常用保底字典找
+                if stock_number in tw_stock_dict:
+                    company_name = tw_stock_dict[stock_number]
+                else:
+                    # 第二重：嘗試從證交所 Open API 撈取當日名稱
+                    try:
+                        res = requests.get("https://twse.com.tw", timeout=3)
+                        if res.status_code == 200:
+                            stock_all = res.json()
+                            target = next((item for item in stock_all if item['Code'] == stock_number), None)
+                            if target:
+                                company_name = target['Name']
+                    except:
+                        pass
+                    
+                    # 第三重：若證交所沒抓到，嘗試回歸 Yahoo 的 shortName
+                    if company_name == "台股個股":
+                        try:
+                            company_name = ticker.info.get('shortName', ticker.info.get('longName', '台股個股'))
+                        except:
+                            pass
 
                 # 計算技術指標
                 df['MA20'] = df['Close'].rolling(window=20).mean()
@@ -69,13 +91,16 @@ if stock_number:
                 st.markdown("---")
                 st.markdown("### 🔮 終極操盤行動指南：")
                 
-                # 5. 策略亮燈判定 (修正換行符號問題)
+                # 5. 策略亮燈判定 (🎯 徹底根除 \n 換行符號錯誤，改用 Streamlit 多行獨立文字排版)
                 if t_rsi < 30:
-                    st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】\n\n➡️ 操盤提示：短線跌幅已大（RSI過低），極易引發高槓桿期貨軋空反彈！請勿盲目加空。")
+                    st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】")
+                    st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿期貨軋空反彈！請勿在此盲目加空。")
                 elif t_price < t_ma20:
-                    st.error(f"🟥【 燈號：強烈適合放空 (SHORT) 🚨 】\n\n➡️ 操盤提示：股價已收破20日生命線，中期趨勢全面轉空，符合放空送分題標準！空單防守點設在 {stop_loss} 元。")
+                    st.error(f"🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
+                    st.write(f"➡️ **操盤提示**：股價已收破20日生命線，中期趨勢全面轉空，符合放空送分題標準！多單或空單回補防守點請死守在 {stop_loss} 元。")
                 else:
-                    st.success("🟩【 燈號：尚未符合放空標準、暫時觀望 】\n\n➡️ 操盤提示：股價穩守在生命線之上，多頭大戶籌碼未潰散，請勿盲目摸頂放空！")
+                    st.success("🟩【 燈號：尚未符合放空標準、暫時觀望 】")
+                    st.write("➡️ **操盤提示**：股價穩守在生命線之上，多頭大戶籌碼未潰散，此處放空容易被軋，請勿盲目摸頂放空！")
                     
         except Exception as e:
             st.error(f"數據加載失敗: {str(e)}")
