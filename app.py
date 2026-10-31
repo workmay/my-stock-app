@@ -11,7 +11,7 @@ st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout=
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
 st.caption(
-    "究極完全體：大盤籌碼黃金三角 ＋ 個股上市櫃智慧分流 ＋ 100% 純中文名 ＋ 動態 K 線均線圖表"
+    "究極完全體：多空雙向狙擊 ＋ 大盤籌碼黃金三角 ＋ 上市櫃智慧分流 ＋ 動態 K 線均線圖表"
 )
 
 # 取得當前系統即時日期
@@ -184,7 +184,10 @@ if stock_number:
                 )
 
                 today_data = df.iloc[-1]
+                prev_data = df.iloc[-2]
+
                 t_price = float(today_data["Close"])
+                t_open = float(today_data["Open"])
                 t_ma5 = float(today_data["MA5"])
                 t_ma20 = float(today_data["MA20"])
                 t_rsi = float(today_data["RSI"])
@@ -194,7 +197,6 @@ if stock_number:
 
                 margin = int(t_price * 2000 * 0.135)
                 tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
-                stop_loss = round(t_ma20 * 1.01, 2)
 
                 # 呈現個股完整數據
                 st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
@@ -255,26 +257,23 @@ if stock_number:
                 st.pyplot(fig)
 
                 # ==============================================================================
-                # 💡 【區塊四】個股最終操盤行動指南
+                # 💡 【區塊四】個股雙向操盤行動指南 (全新加入做多訊號偵測)
                 # ==============================================================================
                 st.markdown("### 🔮 個股操盤行動指南：")
 
-                if t_rsi < 30:
-                    st.warning(
-                        "🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】\n\n"
-                        "➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿期貨軋空反彈！請勿在此盲目加空。"
-                    )
-                elif t_price < t_ma20:
-                    st.error(
-                        f"🟥【 燈號：強烈適合放空 (SHORT) 🚨 】\n\n"
-                        f"➡️ **操盤提示**：價格已收破 20 日生命線，中期趨勢全面轉空，符合放空送分題標準！\n\n"
-                        f"⚠️ **風控防線**：空單或多單停損回補點請死守在 **{stop_loss} 元**。"
-                    )
-                else:
+                # 計算技術指標判斷做多用的「近兩日最低價」防守點
+                local_min = min(float(today_data["Low"]), float(prev_data["Low"]))
+
+                # 🧠 條件 A：觸發【強烈買進做多】燈號（RSI偏低築底後，首度收紅K且強勢站上5日攻擊線）
+                if t_rsi < 45 and t_price > t_open and t_price > t_ma5:
+                    stop_loss_long = round(local_min * 0.995, 2)  # 多單停損點設在近兩日最低價再往下減0.5%緩衝
                     st.success(
-                        "🟩【 燈號：尚未符合放空標準、暫時觀望 】\n\n"
-                        "➡️ **操盤提示**：價格穩守在生命線之上，多頭大戶籌碼未潰散，此處放空容易被軋，請勿盲目摸頂放空！"
+                        "🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】\n\n"
+                        "➡️ **操盤提示**：股價在低檔成功打底，今日「首度收紅K」且「強勢站上5日攻擊線」，代表多頭主力帶頭反擊，高勝率轉折買點出現！\n\n"
+                        f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**（跌破近兩日低點便認輸平倉）。"
                     )
 
-        except Exception as e:
-            st.error(f"數據加載失敗: {str(e)}")
+                # 🧠 條件 B：觸發【超賣不可追空】燈號（持續大跌，RSI極度超賣但多頭還沒反擊）
+                elif t_rsi < 30:
+                    st.warning(
+                        "🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】\n\n"
