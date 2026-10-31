@@ -10,20 +10,19 @@ import yfinance as yf
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("究極完全體：全球商品萬能相容 ＋ 多空雙向狙擊 ＋ 大盤籌碼黃金三角 ＋ 均線攻防圖表")
+st.caption("究極完全體：全球多資產相容版 (支援股票、ETF、黃金現貨與美股標的)")
 
 # ==============================================================================
-# 🧠 二、個股操盤大腦判斷核心 (獨立移至最外層，完美避免縮排陷阱)
+# 🧠 二、個股操盤大腦判斷核心 (獨立移至最外層)
 # ==============================================================================
 def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long, stop_loss_short):
-    st.markdown("### 🔮 全球商品雙向操盤行動指南：")
+    st.markdown("### 🔮 標的雙向操盤行動指南：")
     
     # 狀態 1：黃金買進做多訊號
     if rsi < 45 and price > open_p and price > ma5:
-        stop_loss_long = round(local_min * 0.995, 2)
         st.success("🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】")
         st.write("➡️ **操盤提示**：價格在低檔成功打底，今日首度收紅K且強勢站上5日攻擊線，多頭主力帶頭反擊，高勝率轉折買點出現！")
-        st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long}** 元/點。")
+        st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**（跌破近兩日低點便認輸平倉）。")
         return
 
     # 狀態 2：超賣築底等待訊號
@@ -35,10 +34,9 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
 
     # 狀態 3：強烈適合放空訊號
     if price < ma20:
-        stop_loss_short = round(ma20 * 1.01, 2)
         st.error("🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
         st.write("➡️ **操盤提示**：價格已收破 20 日生命線，中期趨勢全面轉空，符合放空送分題標準！")
-        st.write(f"⚠️ **空單風控防線**：空單回補停損點請死守在 **{stop_loss_short}** 元/點。")
+        st.write(f"⚠️ **空單風控防線**：空單回補停損點請死守在 **{stop_loss_short} 元**。")
         return
 
     # 狀態 4：常態橫盤震盪續抱
@@ -101,40 +99,39 @@ def process_market_dashboard(current_date_str, today_str):
     col3.metric("台指 VIX 指數", f"{current_vix:.2f}")
 
     if net_oi_big > 15000 and retail_ratio < -15 and current_vix < 16:
-        st.success("🔥【 大盤策略警報：🚀 黃金多頭送分題觸發 🚀 】🚨\n\n💡 操盤策略：外資重兵做多 ＋ 散戶放空被軋 ＋ 市場波動穩定。\n\n➡️ 方向極度看多！請順勢找買點做多！")
+        st.success("🔥【 大盤策略警報：🚀 黃金多頭送分題觸發 🚀 】🚨\n\n💡 操盤策略：外資重兵做多 ＋ 散戶放空被軋 ＋ 市場波動穩定。")
     elif net_oi_big < -15000 and retail_ratio > 15 and current_vix > 20:
-        st.error("🔥【 大盤策略警報：💥 斷頭崩盤預警題觸發 💥 】🚨\n\n💡 操盤策略：外資萬口空單壓頂 ＋ 散戶死撐接刀 ＋ VIX飆高恐慌。\n\n➡️ 方向極度危險！多單請立刻停損，激進者可放空！")
+        st.error("🔥【 大盤策略警報：💥 斷頭崩盤預警題觸發 💥 】🚨\n\n💡 操盤策略：外資萬口空單壓頂 ＋ 散戶死撐接刀 ＋ VIX飆高恐慌。")
     else:
         st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
 
 # ==============================================================================
-# 🗂️ 五、全球商品大腦資料安全撈取核心 (智慧型組合相容升級)
+# 🗂️ 五、個股大腦資料安全撈取核心 (萬能轟炸流，支援黃金現貨與全球美股)
 # ==============================================================================
 def process_stock_dashboard(stock_number):
-    # 明星對照表
     tw_stock_dict = {
         "3481": "群創", "3260": "威剛", "2409": "友達", "2330": "台積電",
         "2317": "鴻海", "2303": "聯電", "3231": "緯創", "2603": "長榮",
         "2609": "陽明", "2615": "萬海", "2884": "玉山金", "7780": "大研生醫",
-        "00631L": "元大台灣50正2", "0050": "元大台灣50", "AU9901": "黃金現貨期貨"
+        "00631L": "元大台灣50正2", "0050": "元大台灣50",
+        "AU9901": "元大實物黃金", "AU9902": "富邦實物黃金"
     }
     
-    df, ticker, final_id = None, None, ""
+    df, ticker = None, None
     
-    # 💡 智慧辨識分流：如果輸入黃金現貨 AU9901，自動幫他導航到國際黃金期貨代碼 GC=F
-    search_number = "GC=F" if stock_number == "AU9901" else stock_number
+    # 💡 核心超級升級：多重代號大範圍轟炸陣列 (包含原字元、上市、上櫃)
+    test_ids = [
+        f"{stock_number}.TW",
+        f"{stock_number}.TWO",
+        stock_number  # 允許直接查美股(如TSLA)或自帶後綴的特殊標的
+    ]
     
-    # 自動排列組合測試清單 (加入美股原樣測試、台股上市、台股上櫃)
-    test_ids = [search_number, f"{search_number}.TW", f"{search_number}.TWO"]
-    if "." in search_number or "=" in search_number:
-        test_ids = [search_number]
-        
     for tid in test_ids:
         try:
             ticker_test = yf.Ticker(tid)
             df_test = ticker_test.history(period="3mo")
             if not df_test.empty:
-                df, ticker, final_id = df_test, ticker_test, tid
+                df, ticker = df_test, ticker_test
                 break
         except:
             pass
@@ -143,24 +140,22 @@ def process_stock_dashboard(stock_number):
         st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
         return
 
-    # 中文名稱解析
-    company_name = "全球金融標的"
+    # 中文名稱對照與搜尋
+    company_name = "金融標的"
     if stock_number in tw_stock_dict:
         company_name = tw_stock_dict[stock_number]
-    elif final_id == "GC=F":
-        company_name = "黃金現貨期貨 (紐約黃金連動)"
     else:
         try:
             q_url = f"https://yahoo.com{stock_number}"
             res_q = requests.get(q_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
             if res_q.status_code == 200:
                 source = res_q.json()['hits']['hits']['_source']
-                company_name = source.get('cryptoName', source.get('assetName', source.get('name', '全球金融標的')))
+                company_name = source.get('cryptoName', source.get('assetName', source.get('name', '金融標的')))
         except:
             pass
     
-    if company_name == "全球金融標的" or not company_name:
-        try: company_name = ticker.info.get('shortName', ticker.info.get('longName', '全球金融標的'))
+    if company_name == "金融標的" or not company_name:
+        try: company_name = ticker.info.get('shortName', ticker.info.get('longName', '金融標的'))
         except: pass
 
     df['MA5'] = df['Close'].rolling(window=5).mean()
@@ -184,22 +179,20 @@ def process_stock_dashboard(stock_number):
     tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
     
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
-    st.caption(f"ℹ️ **資料來源**：Yahoo Finance 全球金融資料庫 ({final_id}) | 📊 **數據最新生效交易日**：{trade_date_str}")
+    st.caption(f"ℹ️ **資料來源**：Yahoo Finance 全球金融資料庫 | 📊 **數據最新生效交易日**：{trade_date_str}")
     
     col4, col5, col6 = st.columns(3)
-    col4.metric("最新收盤價", f"{t_price:.2f}")
-    col5.metric("5日攻擊線", f"{t_ma5:.2f}")
-    col6.metric("20日生命線", f"{t_ma20:.2f}")
+    col4.metric("最新收盤價", f"{t_price:.2f} 元")
+    col5.metric("5日攻擊線", f"{t_ma5:.2f} 元")
+    col6.metric("20日生命線", f"{t_ma20:.2f} 元")
     
     col7, col8, col9 = st.columns(3)
-    col7.metric("期貨估算保證金", f"$ {margin:,}")
+    col7.metric("期貨估算保證金參考", f"$ {margin:,}")
     col8.metric("每跳一檔損益參考", f"$ {tick}")
     col9.metric("目前 RSI 指標", f"{t_rsi:.2f}")
     
-    # 呼叫圖表渲染器
     draw_chart(df)
     
-    # 呼叫操盤指南大腦
     local_min = min(float(today_data['Low']), float(prev_data['Low']))
     stop_loss_long = round(local_min * 0.995, 2)
     stop_loss_short = round(t_ma20 * 1.01, 2)
@@ -216,6 +209,7 @@ process_market_dashboard(current_date_str, today_str)
 st.markdown("---")
 st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
 
+# 提示文字升級，加入美股與黃金範例
 stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、AU9901、TSLA）：", value="3481").strip().upper()
 
 if stock_input:
