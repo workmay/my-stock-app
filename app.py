@@ -25,7 +25,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
     if rsi < 45 and price > open_p and price > ma5:
         st.success("🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】")
         st.write("➡️ **操盤提示**：股價在低檔成功打底，今日首度收紅K且強勢站上5日攻擊線，多頭主力帶頭反擊，高勝率轉折買點出現！")
-        st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**（跌破近兩日低點便認輸平倉）。")
+        st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停停損價請死守在 **{stop_loss_long} 元**（跌破近兩日低點便認輸平倉）。")
         return
 
     # 狀態 2：超賣築底等待訊號
@@ -53,10 +53,10 @@ def draw_chart(df):
     st.markdown("#### 📈 均線攻防趨勢圖表")
     fig, ax = plt.subplots(figsize=(10, 4.5))
     
-    # 💡 關鍵優化：將標籤直接修正為標準的金融操盤代碼，全球伺服器 100% 支援不亂碼！
-    ax.plot(df.index, df['Close'], label="Price (收盤價)", color="#38bdf8", linewidth=2)
-    ax.plot(df.index, df['MA5'], label="MA5 (5日攻擊線)", color="#eab308", linestyle="--")
-    ax.plot(df.index, df['MA20'], label="MA20 (20日生命線)", color="#ef4444", linestyle="--")
+    # 💡 終極優化：將標籤完全改為「純英數字元」，徹底阻斷所有亂碼根源！
+    ax.plot(df.index, df['Close'], label="Price", color="#38bdf8", linewidth=2)
+    ax.plot(df.index, df['MA5'], label="MA5", color="#eab308", linestyle="--")
+    ax.plot(df.index, df['MA20'], label="MA20", color="#ef4444", linestyle="--")
     
     # 圖表高質感深色背景美化
     fig.patch.set_facecolor('#1e293b')
@@ -65,7 +65,7 @@ def draw_chart(df):
     ax.tick_params(colors='#94a3b8', which='both')
     ax.grid(True, linestyle=':', alpha=0.3, color='#334155')
     
-    # 渲染圖例，完全相容英文字元
+    # 渲染純英文圖例
     ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
     st.pyplot(fig)
 
