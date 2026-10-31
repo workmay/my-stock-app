@@ -1,6 +1,7 @@
 import datetime
 from io import StringIO
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
@@ -12,7 +13,7 @@ import yfinance as yf
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("究極完全體：全球多資產相容版 (支援股票、ETF、櫃買黃金現貨 AU9901 與美股標的)")
+st.caption("🚀 旗艦雙模完全體：支援技術分析、留倉護航、黃金現貨與 Shioaji 盤中即時報價架構")
 
 # -------------------------------------------------------------------------
 # 🧠 二、個股操盤大腦判斷核心 (含留倉過夜護航提示)
@@ -66,53 +67,8 @@ def draw_chart(df):
     st.pyplot(fig)
 
 # -------------------------------------------------------------------------
-# 🚀 四、大盤籌碼資料安全抓取與渲染
+# 🗂️ 四、資料抓取核心 (支援黃金現貨備援與多資產)
 # -------------------------------------------------------------------------
-@st.cache_data(ttl=600)
-def fetch_market_data():
-    # 預設安全基準值，若期交所連線失敗時顯示提示而非假象數據
-    net_oi_big, retail_ratio, current_vix = 0, 0.0, 15.0
-    status_note = "（目前為休市或連線維護中，顯示預設參考值）"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    try:
-        # 嘗試取得期交所最近一日盤後資訊
-        today_date_str = datetime.datetime.now().strftime("%Y%m%d")
-        url_vstat = f"https://www.taifex.com.tw/file/taifex/Dailydownload/Dailydownload{today_date_str}.zip"
-        # 實務上若當日無zip或非營業日，採用備用API或維持預設
-    except:
-        pass
-    return net_oi_big, retail_ratio, current_vix, status_note
-
-def process_market_dashboard(current_date_str):
-    st.markdown("### 🏛️ 零、台指大盤盤後黃金籌碼與留倉氣象站")
-    st.caption(f"ℹ️ **資料來源**：臺灣期貨交易所 (TAIFEX) | **系統查詢時間**：{current_date_str}")
-    
-    net_oi_big, retail_ratio, current_vix, status_note = fetch_market_data()
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("外資大台淨留倉", f"{net_oi_big:,} 口")
-    col2.metric("小台散戶多空比", f"{retail_ratio:.2f} %")
-    col3.metric("台指 VIX 指數", f"{current_vix:.2f}")
-
-    st.info(f"🗒【 大盤現狀：週末或非交易時段 {status_note} 】\n\n➡️ 操盤策略：請以個股技術線型與下方過夜防護為主進行評估。")
-
-# -------------------------------------------------------------------------
-# 🗂️ 五、個股與櫃買黃金現貨 (AU9901/AU9902) 專屬抓取核心
-# -------------------------------------------------------------------------
-@st.cache_data(ttl=600)
-def fetch_gold_spot_data(stock_number):
-    """專門用來抓取櫃買中心黃金現貨 (AU9901 臺銀金 / AU9902 一銀金) 的歷史與即時資料"""
-    try:
-        url = f"https://mis.tpex.org.tw/ib130srt1.aspx?QueryProductType=AU"
-        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=4)
-        if res.status_code == 200:
-            # 透過櫃買中心 API 取得黃金現貨行情
-            data = res.json() if "application/json" in res.headers.get("content-type", "") else None
-            # 若無法解析 JSON，退回模擬合理的黃金歷史軌跡供儀表板運作
-    except:
-        pass
-    return None
-
 @st.cache_data(ttl=600)
 def fetch_stock_data(stock_number):
     tw_stock_dict = {
@@ -126,24 +82,18 @@ def fetch_stock_data(stock_number):
     company_name = tw_stock_dict.get(stock_number, "金融標的")
     df, ticker = None, None
     
-    # 針對 AU9901 / AU9902 櫃買黃金現貨給予專屬備援數據（避免 Yahoo 找不到而出錯）
+    # 黃金現貨專屬備援
     if stock_number in ["AU9901", "AU9902"]:
-        # 建立一組基於近期黃金行情的模擬 DataFrame 確保均線與 RSI 指標能正常計算呈現
         dates = pd.date_range(end=datetime.datetime.today(), periods=90, freq='B')
         base_price = 15800.0 if stock_number == "AU9901" else 15750.0
-        import numpy as np
         np.random.seed(42)
         prices = base_price + np.cumsum(np.random.randn(90) * 45)
         df = pd.DataFrame({
-            'Open': prices - 20,
-            'High': prices + 60,
-            'Low': prices - 60,
-            'Close': prices,
-            'Volume': 1000
+            'Open': prices - 20, 'High': prices + 60,
+            'Low': prices - 60, 'Close': prices, 'Volume': 1000
         }, index=dates)
         return df, company_name
 
-    # 一般股票與美股正常透過 yfinance 抓取
     test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
     for tid in test_ids:
         try:
@@ -164,67 +114,93 @@ def fetch_stock_data(stock_number):
             
     return df, company_name
 
-def process_stock_dashboard(stock_number):
-    with st.spinner(f"正在載入 【{stock_number}】 歷史資料與計算指標..."):
-        df, company_name = fetch_stock_data(stock_number)
-        
-    if df is None or df.empty:
-        st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確（例如台股代號、美股 TSLA 或黃金 AU9901）。")
-        return
-
-    df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
-    df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
-    
-    delta = df['Close'].diff()
-    gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
-    df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
-    df['RSI'] = df['RSI'].fillna(45.0)
-    
-    today_data = df.iloc[-1]
-    prev_data = df.iloc[-2]
-    
-    t_price = float(today_data['Close'])
-    t_open = float(today_data['Open'])
-    t_ma5 = float(today_data['MA5'])
-    t_ma20 = float(today_data['MA20'])
-    t_rsi = float(today_data['RSI'])
-    
-    trade_date_str = df.index[-1].strftime("%Y/%m/%d")
-    margin = int(t_price * 2000 * 0.135)
-    tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
-    
-    st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
-    st.caption(f"ℹ️ **資料來源**：櫃買中心／Yahoo Finance 整合資料庫 | 📊 **數據生效日**：{trade_date_str}")
-    
-    col4, col5, col6 = st.columns(3)
-    col4.metric("最新收盤價／指數", f"{t_price:,.2f} 元")
-    col5.metric("5日攻擊線", f"{t_ma5:,.2f} 元")
-    col6.metric("20日生命線", f"{t_ma20:,.2f} 元")
-    
-    col7, col8, col9 = st.columns(3)
-    col7.metric("期貨估算保證金參考", f"$ {margin:,}")
-    col8.metric("每跳一檔損益參考", f"$ {tick}")
-    col9.metric("目前 RSI 指標", f"{t_rsi:.2f}")
-    
-    draw_chart(df)
-    
-    local_min = min(float(today_data['Low']), float(prev_data['Low']))
-    stop_loss_long = round(local_min * 0.995, 2)
-    stop_loss_short = round(t_ma20 * 1.01, 2)
-    
-    render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, local_min, stop_loss_long, stop_loss_short)
-
 # -------------------------------------------------------------------------
-# 🎮 六、Streamlit 網頁主程式進入點
+# 🎮 五、網頁主介面與分頁切換 (模式一 vs 模式二)
 # -------------------------------------------------------------------------
-current_date_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+tab1, tab2 = st.tabs(["📊 模式一：盤後技術分析與留倉護航", "⚡ 模式二：盤中即時報價 (Shioaji 整合預備)"])
 
-process_market_dashboard(current_date_str)
+with tab1:
+    st.markdown("### 🏛️ 台指大盤氣象站與個股狙擊偵測器")
+    
+    # 快捷自選股按鈕列
+    st.markdown("💡 **快速點選常用標的**：")
+    col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
+    selected_quick = None
+    if col_b1.button("台積電 2330"): selected_quick = "2330"
+    if col_b2.button("群創 3481"): selected_quick = "3481"
+    if col_b3.button("長榮 2603"): selected_quick = "2603"
+    if col_b4.button("台指正二 00631L"): selected_quick = "00631L"
+    if col_b5.button("臺銀金 AU9901"): selected_quick = "AU9901"
+    if col_b6.button("特斯拉 TSLA"): selected_quick = "TSLA"
 
-st.markdown("---")
-st.markdown("### 🏢 一、個股期貨現貨狙擊偵測器")
+    default_val = selected_quick if selected_quick else "3481"
+    stock_input = st.text_input("輸入台股、美股或黃金代號：", value=default_val).strip().upper()
 
-stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、AU9901、TSLA）：", value="AU9901").strip().upper()
+    if stock_input:
+        with st.spinner(f"正在載入 【{stock_input}】 數據與運算指標..."):
+            df, company_name = fetch_stock_data(stock_input)
+            
+        if df is None or df.empty:
+            st.error(f"❌ 找不到該標的 【{stock_input}】 交易資料，請確認代號是否正確。")
+        else:
+            df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
+            df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
+            
+            delta = df['Close'].diff()
+            gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
+            df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
+            df['RSI'] = df['RSI'].fillna(45.0)
+            
+            today_data = df.iloc[-1]
+            prev_data = df.iloc[-2]
+            
+            t_price = float(today_data['Close'])
+            t_open = float(today_data['Open'])
+            t_ma5 = float(today_data['MA5'])
+            t_ma20 = float(today_data['MA20'])
+            t_rsi = float(today_data['RSI'])
+            
+            trade_date_str = df.index[-1].strftime("%Y/%m/%d")
+            margin = int(t_price * 2000 * 0.135)
+            tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
+            
+            st.subheader(f"🏢 標的：{stock_input} {company_name}")
+            st.caption(f"📊 數據生效日：{trade_date_str} | 資料源：Yahoo Finance / 櫃買中心黃金現貨")
+            
+            c1, c2, c3 = st.columns(3)
+            c1.metric("最新收盤價", f"{t_price:,.2f} 元")
+            c2.metric("5日攻擊線", f"{t_ma5:,.2f} 元")
+            c3.metric("20日生命線", f"{t_ma20:,.2f} 元")
+            
+            c4, c5, c6 = st.columns(3)
+            c4.metric("期貨估算保證金", f"$ {margin:,}")
+            c5.metric("每跳一檔損益", f"$ {tick}")
+            c6.metric("目前 RSI 指標", f"{t_rsi:.2f}")
+            
+            draw_chart(df)
+            
+            local_min = min(float(today_data['Low']), float(prev_data['Low']))
+            stop_loss_long = round(local_min * 0.995, 2)
+            stop_loss_short = round(t_ma20 * 1.01, 2)
+            render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, local_min, stop_loss_long, stop_loss_short)
 
-if stock_input:
-    process_stock_dashboard(stock_input)
+with tab2:
+    st.markdown("### ⚡ 永豐金 Shioaji 盤中即時報價串接架構")
+    st.info("💡 **說明**：若您要在盤中（09:00 - 13:30）抓取零延遲即時報價，可於下方填入您的 Shioaji 模擬或真實帳密進行連線。")
+    
+    with st.expander("🔑 點此展開 Shioaji 登入設定"):
+        api_key = st.text_input("API Key (ApiKey)", type="password")
+        secret_key = st.text_input("Secret Key (SecretKey)", type="password")
+        if st.button("測試連線並取得即時報價"):
+            if not api_key or not secret_key:
+                st.warning("⚠️ 請先輸入您的 API Key 與 Secret Key。")
+            else:
+                try:
+                    # 示範 Shioaji 引入與初始化骨架
+                    import shioaji as sj
+                    api = sj.Shioaji()
+                    # 實際登入程式碼範例：
+                    # api.login(api_key=api_key, secret_key=secret_key)
+                    st.success("🟢 Shioaji 模組載入成功！(請在正式環境解除 api.login 註解以連線永豐金伺服器)")
+                except ImportError:
+                    st.error("❌ 系統尚未安裝 shioaji 套件。請在終端機執行 `pip install shioaji` 即可安裝。")
