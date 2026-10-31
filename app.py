@@ -62,6 +62,7 @@ def draw_chart(df):
 # 🚀 四、大盤籌碼資料安全抓取與渲染
 # ==============================================================================
 def process_market_dashboard(current_date_str, today_str):
+    st.markdown("---")
     st.markdown("### 🏛️ 一、台指大盤盤後黃金籌碼指標")
     st.caption(f"ℹ️ **資料來源**：臺灣期貨交易所 (TAIFEX) 官方盤後統計數據 | **系統查詢時間**：{current_date_str}")
     net_oi_big, retail_ratio, current_vix = 16500, -18.20, 14.50     
@@ -94,27 +95,23 @@ def process_market_dashboard(current_date_str, today_str):
         st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
 
 # ==============================================================================
-# 🗂️ 五、個股資料安全撈取核心 (🚀 終極改版：黃金現貨專用解析引擎)
+# 🗂️ 五、個股資料安全撈取核心 (黃金現貨專用官方直連引擎)
 # ==============================================================================
 def process_stock_dashboard(stock_number):
     tw_stock_dict = {
         "3481": "群創", "3260": "威剛", "2409": "友達", "2330": "台積電",
         "2317": "鴻海", "2303": "聯電", "3231": "緯創", "2603": "長榮",
-        "2609": "陽明", "2615": "萬海", "2884": "玉山金", "7780": "大研生醫",
-        "00631L": "元大台灣50正2", "0050": "元大台灣50"
+        "2609": "陽明", "2615": "萬海", "2884": "玉山金", "7780": "大研生醫"
     }
     df, ticker = None, None
     company_name = "台股標的"
     is_gold_spot = stock_number in ["AU9901", "AU9902"]
     
-    # 💡 終極暴力防護盾：如果是黃金現貨，直接串接櫃買中心最底層的「黃金現貨行情 API」！
     if is_gold_spot:
         try:
-            # 櫃買中心專門處理黃金現貨交易平台的官方 API 通道
             res_gold = requests.get("https://tpex.org.tw", headers={"User-Agent":"Mozilla/5.0"}, timeout=3)
             if res_gold.status_code == 200:
                 gold_all = res_gold.json()
-                # 遍歷尋找代號匹配
                 gold_target = next((item for item in gold_all if item.get('SecuritiesCode', '').strip() == stock_number), None)
                 if gold_target:
                     g_price = float(gold_target.get('ClosingPrice', '0').replace(',', '').strip())
@@ -129,7 +126,6 @@ def process_stock_dashboard(stock_number):
         except:
             pass
 
-    # 常態個股與 ETF 下載通道
     if df is None:
         test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
         for tid in test_ids:
@@ -163,7 +159,6 @@ def process_stock_dashboard(stock_number):
             try: company_name = ticker.info.get('shortName', ticker.info.get('longName', '金融標的'))
             except: pass
 
-    # 指標計算與渲染
     df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
     df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
     
@@ -183,7 +178,7 @@ def process_stock_dashboard(stock_number):
     tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
     
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
-    st.caption(f"ℹ️ **資料來源**：櫃買中心黃金現貨交易平台 / Yahoo Finance | 📊 **數據最新生效交易日**：{trade_date_str}")
+    st.caption(f"ℹ️ **資料來源**：官方外接行情庫 / Yahoo Finance | 📊 **數據最新生效交易日**：{trade_date_str}")
     col4, col5, col6 = st.columns(3)
     col4.metric("最新收盤價", f"{t_price:.2f} 元")
     col5.metric("5日攻擊線", f"{t_ma5:.2f} 元")
@@ -199,17 +194,20 @@ def process_stock_dashboard(stock_number):
     render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, local_min, stop_loss_long, stop_loss_short)
 
 # ==============================================================================
-# 🎮 六、Streamlit 網頁主程式進入點
+# 🎮 六、Streamlit 網頁主程式進入點 (🎯 徹底平鋪，不使用最底層 try 保護，100% 杜絕縮排)
 # ==============================================================================
 current_date_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
 today_str = datetime.datetime.now().strftime("%Y/%m/%d")
 
+# 1. 顯示大盤
 process_market_dashboard(current_date_str, today_str)
 
 st.markdown("---")
 st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
 
+# 2. 輸入文字框
 stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、AU9902、TSLA）：", value="3481").strip().upper()
 
+# 3. 直踩地面執行，完全不縮排
 if stock_input:
-    try:
+    process_stock_dashboard(stock_input)
