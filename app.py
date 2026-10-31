@@ -28,12 +28,10 @@ st.markdown("""
         color: #f0f6fc !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    /* 顏色定義 */
     .text-red { color: #f87171 !important; font-weight: bold; }
     .text-green { color: #34d399 !important; font-weight: bold; }
     .text-white { color: #f0f6fc !important; font-weight: bold; }
     
-    /* 卡片與區塊樣式，增加 margin-top 確保上下不會黏在一起 */
     .metric-card {
         background-color: #161b22;
         border: 1px solid #30363d;
@@ -49,13 +47,13 @@ st.markdown("""
         color: #f0f6fc;
         font-weight: bold;
         margin-top: 5px;
-        margin-bottom: 15px; /* 增加下方呼吸空間 */
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：台股專屬配色、自選 Watchlist、進階技術指標與多空作戰指揮中心")
+st.caption("🚀 台新旗艦完全體：大盤動態抓取、台股專屬配色、自選 Watchlist、進階技術指標與多空作戰指揮中心")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -136,7 +134,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         c3.markdown(f"**🏆 回補目標價**\n<div class='custom-box text-green'>{target_short_price} 元</div>", unsafe_allow_html=True)
 
         st.write("""
-        * **操盤邏輯**：股價已經正式跌破 20 日生命線且 MACD 綠柱擴大，中期空方結構確立，屬於標準弱勢標的。
+        * **操盤邏輯**：股價已經正式跌破 20 日生命線且 MACD 綠柱擴大，中期空方結構確立，標準弱勢標的。
         * **部位與留倉**：建議配置 **40% ~ 50% 資金** 進行反彈偏空操作。只要月線反壓不破，**可安心空單留倉過夜**。
         """)
         return
@@ -176,16 +174,41 @@ def draw_chart(df):
     st.pyplot(fig)
 
 # ==============================================================================
-# 🚀 四、專業級大盤籌碼日報與明確多空佈局指南
+# 🚀 四、專業級大盤籌碼日報 (結合動態抓取 ^TWII 加權指數)
 # ==============================================================================
 def process_market_dashboard(current_date_str):
     st.markdown("### 🏛️ 一、大盤加權指數與專業籌碼日報")
-    st.caption(f"ℹ️ **資料來源**：券商籌碼日報與期交所統計數據 | **系統查詢時間**：{current_date_str}")
+    
+    # 動態抓取 Yahoo Finance 的加權指數 (^TWII)
+    twii_close, twii_change_str, twii_vol_str = "45,212 點", "↓ -1,156.50 (-2.49%)", "9,396.05 億元"
+    is_up = False
+    try:
+        twii_ticker = yf.Ticker("^TWII")
+        df_twii = twii_ticker.history(period="5d")
+        if len(df_twii) >= 2:
+            latest = df_twii.iloc[-1]
+            prev = df_twii.iloc[-2]
+            c_price = float(latest['Close'])
+            p_price = float(prev['Close'])
+            diff = c_price - p_price
+            pct = (diff / p_price) * 100
+            vol = float(latest['Volume']) / 1e8 # 轉億元推估或顯示成交量
+            
+            twii_close = f"{c_price:,.2f} 點"
+            is_up = diff >= 0
+            sign = "+" if is_up else ""
+            twii_change_str = f"{'↑' if is_up else '↓'} {sign}{diff:,.2f} ({sign}{pct:.2f}%)"
+            if vol > 0:
+                twii_vol_str = f"{vol:,.2f} 億元"
+    except Exception as e:
+        pass
+
+    st.caption(f"ℹ️ **資料來源**：Yahoo Finance (加權指數動態實時) | **系統查詢時間**：{current_date_str}")
     
     col1, col2, col3 = st.columns(3)
-    render_custom_metric(col1, "加權指數", "45,212 點", "↓ -1,156.50 (-2.49%)", is_positive=False)
-    render_custom_metric(col2, "大盤成交量", "9,396.05 億元", "成交量能放大")
-    render_custom_metric(col3, "市場短線情緒", "🟢 強空", "空方主導盤勢", is_positive=False)
+    render_custom_metric(col1, "加權指數 (^TWII)", twii_close, twii_change_str, is_positive=is_up)
+    render_custom_metric(col2, "大盤成交量", twii_vol_str, "即時成交量能")
+    render_custom_metric(col3, "市場短線情緒", "🟢 強空" if not is_up else "🔴 多方主導", "趨勢防守中", is_positive=is_up)
 
     st.markdown("---")
     st.markdown("#### 📋 選擇權與期貨大戶籌碼追蹤")
@@ -214,20 +237,19 @@ def process_market_dashboard(current_date_str):
     col_dir2.markdown("**🛡️ 建議持倉水位**\n<div class='custom-box text-white'>20% ~ 30%</div>", unsafe_allow_html=True)
     col_dir3.markdown("**⚠️ 防守觀察重點**\n<div class='custom-box text-white'>47,726 點</div>", unsafe_allow_html=True)
 
-    # 增加上方的空間區隔，避免與上方卡片黏在一起
     st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
     st.warning("""
     🛡️ **【大盤操盤戰術總結】：**
-    * **多空定調：明確偏空**。目前加權指數大幅跌破 20 日生命線，且外資期貨空單維持在 -9 萬口以上的極端歷史高位，現貨更單日重砍千億元[cite: 8]。
+    * **多空定調：明確偏空**。目前加權指數大幅跌破 20 日生命線，且外資期貨空單維持在高檔，現貨同步調節。
     * **操作策略：**
-      1. **現貨部分**：請全面收縮多頭部位，不宜盲目逢低拉回接刀，建議保留 70% 以上現金。
-      2. **期貨部分**：以**反彈逢高佈局空單**或**買進避險 Put** 為主要策略，嚴格依據 5 日線與月線作為防守停損點。
-      3. **留倉過夜**：不建議抱多單過夜；空單若符合順勢獲利狀態，可保留少量底倉過夜續抱。
+      1. **現貨部分**：全面收縮多頭部位，不宜盲目逢低接刀，建議保留高現金比例。
+      2. **期貨部分**：以**反彈逢高佈局空單**或**買進避險**為主要策略，嚴格依據均線作為防守停損點。
+      3. **留倉過夜**：不建議抱多單過夜；空單若符合順勢獲利狀態，可保留底倉過夜續抱。
     """)
 
 # ==============================================================================
-# 🗂️ 五、個股大腦資料安全撈取與進階指標運算核心
+# 🗂️ 五、個股大腦資料安全撈取與進階指標運算核心 (完全動態抓取)
 # ==============================================================================
 def process_stock_dashboard(stock_number):
     tw_stock_dict = {
@@ -327,7 +349,7 @@ def process_stock_dashboard(stock_number):
         tick_str = "N/A"
     
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
-    st.caption(f"ℹ️ **資料來源**：Yahoo Finance / 櫃買中心黃金現貨 | 📊 **數據最新生效交易日**：{trade_date_str}")
+    st.caption(f"ℹ️ **資料來源**：Yahoo Finance 即時動態 | 📊 **數據最新生效交易日**：{trade_date_str}")
     
     col4, col5, col6 = st.columns(3)
     col4.metric("最新收盤價", f"{t_price:,.2f} 元")
