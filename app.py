@@ -1,4 +1,5 @@
 import datetime
+import os
 from io import StringIO
 import matplotlib
 matplotlib.use('Agg')
@@ -53,11 +54,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：修復語法錯誤、雙向作戰計畫、動態大盤與自選 Watchlist")
+st.caption("🚀 台新旗艦完全體：外部獨立 Watchlist、雙向作戰計畫、動態大盤與進階技術指標")
 
-# 側邊欄：自選股專屬 Watchlist 快速選單
-st.sidebar.header("📌 自選股 Watchlist 快速清單")
-watchlist_options = {
+# -------------------------------------------------------------------------
+# 動態讀取外部自選股清單 (watchlist.txt)
+# -------------------------------------------------------------------------
+watchlist_file = "watchlist.txt"
+default_watchlist = {
     "台積電 (2330)": "2330",
     "群創 (3481)": "3481",
     "長榮 (2603)": "2603",
@@ -67,11 +70,39 @@ watchlist_options = {
     "聯電 (2303)": "2303",
     "鴻海 (2317)": "2317"
 }
+
+def load_watchlist():
+    if os.path.exists(watchlist_file):
+        try:
+            options = {}
+            with open(watchlist_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and "," in line:
+                        name, code = line.split(",", 1)
+                        options[name.strip()] = code.strip()
+            if options:
+                return options
+        except Exception:
+            pass
+    # 若檔案不存在，自動建立預設檔案
+    try:
+        with open(watchlist_file, "w", encoding="utf-8") as f:
+            for name, code in default_watchlist.items():
+                f.write(f"{name},{code}\n")
+    except Exception:
+        pass
+    return default_watchlist
+
+watchlist_options = load_watchlist()
+
+# 側邊欄：自選股專屬 Watchlist 快速選單
+st.sidebar.header("📌 自選股 Watchlist 快速清單")
 selected_watch_label = st.sidebar.selectbox("選擇您的自選標的：", list(watchlist_options.keys()))
 quick_selected_code = watchlist_options[selected_watch_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **提示**：您也可以在下方主畫面輸入框直接查詢任意台美股、期貨或黃金代號。")
+st.sidebar.info("💡 **提示**：您可以直接修改專案資料夾中的 `watchlist.txt` 來增減自選股，格式為 `名稱,代號`（例如：`聯發科,2454`）。")
 
 def render_custom_metric(col, label, value, sub_text="", is_positive=True):
     color_class = "text-red" if is_positive else "text-green"
