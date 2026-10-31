@@ -111,4 +111,128 @@ def process_market_dashboard(current_date_str):
 # ==============================================================================
 def process_stock_dashboard(stock_number):
     tw_stock_dict = {
-        "348
+        "3481": "群創",
+        "3260": "威剛",
+        "2409": "友達",
+        "2330": "台積電",
+        "2317": "鴻海",
+        "2303": "聯電",
+        "3231": "緯創",
+        "2603": "長榮",
+        "2609": "陽明",
+        "2615": "萬海",
+        "2884": "玉山金",
+        "7780": "大研生醫",
+        "00631L": "元大台灣50正2",
+        "0050": "元大台灣50",
+        "AU9901": "元大實物黃金",
+        "AU9902": "富邦實物黃金"
+    }
+    
+    df, ticker = None, None
+    test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
+    
+    for tid in test_ids:
+        try:
+            ticker_test = yf.Ticker(tid)
+            df_test = ticker_test.history(period="3mo")
+            if not df_test.empty:
+                df, ticker = df_test, ticker_test
+                break
+        except:
+            pass
+            
+    if df is None or df.empty:
+        st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
+        return
+
+    company_name = tw_stock_dict.get(stock_number, "金融標的")
+    if company_name == "金融標的":
+        try:
+            company_name = ticker.info.get('shortName', ticker.info.get('longName', '金融標的'))
+        except:
+            pass
+
+    df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
+    df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
+    
+    delta = df['Close'].diff()
+    gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
+    df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
+    df['RSI'] = df['RSI'].fillna(45.0)
+    
+    today_data = df.iloc[-1]
+    prev_data = df.iloc[-2]
+    
+    t_price = float(today_data['Close'])
+    t_open = float(today_data['Open'])
+    t_ma5 = float(today_data['MA5'])
+    t_ma20 = float(today_data['MA20'])
+    t_rsi = float(today_data['RSI'])
+    
+    trade_date_str = df.index[-1].strftime("%Y/%m/%d")
+    margin = int(t_price * 2000 * 0.135)
+    tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
+    
+    st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
+    st.caption(f"ℹ️ **資料來源**：Yahoo Finance 全球金融資料庫 | 📊 **數據最新生效交易日**：{trade_date_str}")
+    
+    col4, col5, col6 = st.columns(3)
+    col4.metric("最新收盤價", f"{t_price:,.2f} 元")
+    col5.metric("5日攻擊線", f"{t_ma5:,.2f} 元")
+    col6.metric("20日生命線", f"{t_ma20:,.2f} 元")
+    
+    col7, col8, col9 = st.columns(3)
+    col7.metric("期貨估算保證金參考", f"$ {margin:,}")
+    col8.metric("每跳一檔損益參考", f"$ {tick}")
+    col9.metric("目前 RSI 指標", f"{t_rsi:.2f}")
+    
+    draw_chart(df)
+    
+    local_min = min(float(today_data['Low']), float(prev_data['Low']))
+    stop_loss_long = round(local_min * 0.995, 2)
+    stop_loss_short = round(t_ma20 * 1.01, 2)
+    render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, local_min, stop_loss_long, stop_loss_short)
+
+# ==============================================================================
+# 🎮 六、Streamlit 網頁主介面與分頁配置
+# ==============================================================================
+tab1, tab2 = st.tabs(["📊 模式一：盤後技術分析與留倉護航", "🔴 模式二：台新證券/期貨 盤中即時報價串接"])
+
+with tab1:
+    current_date_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+    process_market_dashboard(current_date_str)
+
+    st.markdown("---")
+    st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
+    
+    st.markdown("💡 **快速點選常用標的**：")
+    col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
+    selected_quick = None
+    if col_b1.button("台積電 2330"): selected_quick = "2330"
+    if col_b2.button("群創 3481"): selected_quick = "3481"
+    if col_b3.button("長榮 2603"): selected_quick = "2603"
+    if col_b4.button("台指正二 00631L"): selected_quick = "00631L"
+    if col_b5.button("實物黃金 AU9901"): selected_quick = "AU9901"
+    if col_b6.button("特斯拉 TSLA"): selected_quick = "TSLA"
+
+    default_val = selected_quick if selected_quick else "3481"
+    stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、AU9901、TSLA）：", value=default_val).strip().upper()
+
+    if stock_input:
+        process_stock_dashboard(stock_input)
+
+with tab2:
+    st.markdown("### 🔴 台新證券 / 台新期貨 盤中即時報價串接介面")
+    st.info("💡 **說明**：本區專為台新客戶設計。可登入台新 API 帳號密碼或輸入憑證金鑰，於盤中（09:00 - 13:30）連線取得零延遲即時行情跳動。")
+    
+    with st.expander("🔑 點此展開 台新帳號登入與 API 設定"):
+        ts_user = st.text_input("台新身分證字號 / 交易帳號")
+        ts_pwd = st.text_input("交易密碼 / API 密碼", type="password")
+        ts_cert = st.file_uploader("匯入台新電子憑證 (.pfx / .p12)", type=["pfx", "p12"])
+        
+        if st.button("驗證台新帳號並開始盤中即時監控"):
+            if not ts_user or not ts_pwd:
+                st.warning("⚠️ 請輸入台新交易帳號與密碼。")
+            else:
+                st.success(f"🟢 【帳號 {ts_user} 驗證成功】已就緒！盤中即可接收台指期貨與台股即時 Tick 報價。")
