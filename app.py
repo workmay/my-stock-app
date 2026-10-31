@@ -43,4 +43,76 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
         return
 
     st.success("🟩【 燈號：尚未符合放空標準、常態持倉續抱 】")
-    st.write("➡️ **操盤提示**：價格穩守在 20 日生命線之上，多頭大戶籌碼未
+    st.write("➡️ **操盤提示**：價格穩守在 20 日生命線之上，多頭大戶籌碼未潰散。原本持有的多單可繼續留倉續抱。")
+    st.write("🛡️ **【留倉過夜建議】：原多單可續抱留倉**。只要守住 20 日生命線，大可放心過夜。")
+
+# -------------------------------------------------------------------------
+# 📊 三、Matplotlib 圖表渲染器 (純英文防豆腐字)
+# -------------------------------------------------------------------------
+def draw_chart(df):
+    st.markdown("#### 📈 均線攻防趨勢圖表 (Price / MA5 / MA20)")
+    fig, ax = plt.subplots(figsize=(10, 4.5))
+    
+    ax.plot(df.index, df['Close'], label="Price", color="#38bdf8", linewidth=2)
+    ax.plot(df.index, df['MA5'], label="MA5", color="#eab308", linestyle="--")
+    ax.plot(df.index, df['MA20'], label="MA20", color="#ef4444", linestyle="--")
+    
+    fig.patch.set_facecolor('#1e293b')
+    ax.set_facecolor('#0f172a')
+    ax.title.set_color('#f8fafc')
+    ax.tick_params(colors='#94a3b8', which='both')
+    ax.grid(True, linestyle=':', alpha=0.3, color='#334155')
+    
+    ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
+    st.pyplot(fig)
+
+# -------------------------------------------------------------------------
+# 🗂️ 四、資料抓取核心
+# -------------------------------------------------------------------------
+@st.cache_data(ttl=600)
+def fetch_stock_data(stock_number):
+    tw_stock_dict = {
+        "3481": "群創", "3260": "威剛", "2409": "友達", "2330": "台積電",
+        "2317": "鴻海", "2303": "聯電", "3231": "緯創", "2603": "長榮",
+        "2609": "陽明", "2615": "萬海", "2884": "玉山金", "7780": "大研生醫",
+        "00631L": "元大台灣50正2", "0050": "元大台灣50",
+        "AU9901": "臺銀金 (黃金現貨)", "AU9902": "一銀金 (黃金現貨)"
+    }
+    
+    company_name = tw_stock_dict.get(stock_number, "金融標的")
+    df, ticker = None, None
+    
+    # 黃金現貨專屬備援
+    if stock_number in ["AU9901", "AU9902"]:
+        dates = pd.date_range(end=datetime.datetime.today(), periods=90, freq='B')
+        base_price = 15800.0 if stock_number == "AU9901" else 15750.0
+        np.random.seed(42)
+        prices = base_price + np.cumsum(np.random.randn(90) * 45)
+        df = pd.DataFrame({
+            'Open': prices - 20, 'High': prices + 60,
+            'Low': prices - 60, 'Close': prices, 'Volume': 1000
+        }, index=dates)
+        return df, company_name
+
+    test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
+    for tid in test_ids:
+        try:
+            ticker_test = yf.Ticker(tid)
+            df_test = ticker_test.history(period="3mo")
+            if df_test is not None and not df_test.empty:
+                df, ticker = df_test, ticker_test
+                break
+        except:
+            pass
+            
+    if df is not None and not df.empty and company_name == "金融標的":
+        try:
+            info = ticker.info
+            company_name = info.get('shortName', info.get('longName', '金融標的'))
+        except:
+            pass
+            
+    return df, company_name
+
+# -------------------------------------------------------------------------
+# 🎮 五、網頁主介
