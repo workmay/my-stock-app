@@ -36,7 +36,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
     if price < ma20:
         st.error("🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
         st.write("➡️ **操盤提示**：價格已收破 20 日生命線，中期趨勢全面轉空，符合放空送分題標準！")
-        st.write(f"⚠️ **空單風控防線**：空單回補停損點請死守在 **{stop_loss_short} 元**。")
+        st.write(f"⚠️ **空單回補防線**：空單回補停損點請死守在 **{stop_loss_short} 元**。")
         return
 
     # 狀態 4：常態橫盤震盪續抱
@@ -67,12 +67,11 @@ def draw_chart(df):
 # 🚀 四、大盤籌碼資料安全抓取與渲染
 # ==============================================================================
 def process_market_dashboard(current_date_str, today_str):
-    st.markdown("---")
     st.markdown("### 🏛️ 一、台指大盤盤後黃金籌碼指標")
     st.caption(f"ℹ️ **資料來源**：臺灣期貨交易所 (TAIFEX) 官方盤後統計數據 | **系統查詢時間**：{current_date_str}")
     
     net_oi_big, retail_ratio, current_vix = 16500, -18.20, 14.50     
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     
     try:
         url_vstat = f"https://taifex.com.tw{today_str}&marketCode=0"
@@ -103,10 +102,10 @@ def process_market_dashboard(current_date_str, today_str):
     elif net_oi_big < -15000 and retail_ratio > 15 and current_vix > 20:
         st.error("🔥【 大盤策略警報：💥 斷頭崩盤預警題觸發 💥 】🚨\n\n💡 操盤策略：外資萬口空單壓頂 ＋ 散戶死撐接刀 ＋ VIX飆高恐慌。")
     else:
-        st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
+        st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損.")
 
 # ==============================================================================
-# 🗂️ 五、個股資料安全撈取核心 (萬能轟炸 ＋ 國家級櫃買黃金現貨直連備援)
+# 🗂️ 五、個股資料安全撈取核心 (滴水不漏安全沙盒防護版)
 # ==============================================================================
 def process_stock_dashboard(stock_number):
     tw_stock_dict = {
@@ -117,27 +116,27 @@ def process_stock_dashboard(stock_number):
     }
     
     df, ticker = None, None
+    company_name = "台股標的"
     is_gold_spot = stock_number in ["AU9901", "AU9902"]
     
-    # 💡 核心升級一：【黃金現貨特殊通道】
-    # 如果使用者輸入黃金現貨，直接使用櫃買中心官方 Open API 的前一日保底 K 線排版，完美繞過雅虎！
+    # 💡 滴水不漏安全隔離：用獨立的 try-except 包裹黃金特別通道，就算出事也絕不拖累網頁顯示！
     if is_gold_spot:
         try:
-            res_gold = requests.get("https://tpex.org.tw", timeout=3)
+            res_gold = requests.get("https://tpex.org.tw", headers={"User-Agent":"Mozilla/5.0"}, timeout=3)
             if res_gold.status_code == 200:
                 gold_all = res_gold.json()
-                gold_target = next((item for item in gold_all if item['SecuritiesCompanyCode'] == stock_number), None)
+                gold_target = next((item for item in gold_all if item.get('SecuritiesCompanyCode', '').strip() == stock_number), None)
                 if gold_target:
-                    g_price = float(gold_target['ClosingPrice'].replace(',', ''))
-                    g_open = float(gold_target['OpeningPrice'].replace(',', ''))
-                    g_high = float(gold_target['HighestPrice'].replace(',', ''))
-                    g_low = float(gold_target['LowestPrice'].replace(',', ''))
-                    g_name = gold_target['CompanyName']
+                    # 徹底清洗並抽取價格，防止千分位逗號導致數字解析壞掉
+                    g_price = float(gold_target.get('ClosingPrice', '0').replace(',', '').strip())
+                    g_open = float(gold_target.get('OpeningPrice', '0').replace(',', '').strip())
+                    g_high = float(gold_target.get('HighestPrice', '0').replace(',', '').strip())
+                    g_low = float(gold_target.get('LowestPrice', '0').replace(',', '').strip())
+                    company_name = gold_target.get('CompanyName', '實物黃金').strip()
                     
-                    # 線上模擬一個 30 天的橫盤假 K 線矩陣，用來安全繪製圖表與均線 (保證圖表不報錯)
-                    dates = pd.date_range(end=datetime.datetime.now(), periods=30)
-                    df = pd.DataFrame({'Close': [g_price]*30, 'Open': [g_open]*30, 'High': [g_high]*30, 'Low': [g_low]*30}, index=dates)
-                    company_name = g_name
+                    if g_price > 0:
+                        dates = pd.date_range(end=datetime.datetime.now(), periods=30)
+                        df = pd.DataFrame({'Close': [g_price]*30, 'Open': [g_open]*30, 'High': [g_high]*30, 'Low': [g_low]*30}, index=dates)
         except:
             pass
 
@@ -158,7 +157,7 @@ def process_stock_dashboard(stock_number):
         st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
         return
 
-    # 中文名稱跨網域對照解析
+    # 中文名稱跨網域對照解析 (非黃金現貨時執行)
     if not is_gold_spot:
         company_name = "金融標的"
         if stock_number in tw_stock_dict:
@@ -176,18 +175,14 @@ def process_stock_dashboard(stock_number):
             try: company_name = ticker.info.get('shortName', ticker.info.get('longName', '金融標的'))
             except: pass
 
-    # 4. 指標計算與渲染
-    df['MA5'] = df['Close'].rolling(window=5).mean()
-    df['MA20'] = df['Close'].rolling(window=20).mean()
-    
-    # 指標保底 (防手造數據出現 NaN)
-    df['MA5'] = df['MA5'].bfill().ffill()
-    df['MA20'] = df['MA20'].bfill().ffill()
+    # 指標計算與渲染
+    df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
+    df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
     
     delta = df['Close'].diff()
     gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
     df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
-    df['RSI'] = df['RSI'].fillna(45.0) # 預設平穩 RSI
+    df['RSI'] = df['RSI'].fillna(45.0)
 
     today_data = df.iloc[-1]
     prev_data = df.iloc[-2]
@@ -203,7 +198,7 @@ def process_stock_dashboard(stock_number):
     tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
     
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
-    st.caption(f"ℹ️ **資料來源**：櫃買中心官方 Open API / Yahoo Finance | 📊 **數據最新生效交易日**：{trade_date_str}")
+    st.caption(f"ℹ️ **資料來源**：官方外接行情庫 / Yahoo Finance | 📊 **數據最新生效交易日**：{trade_date_str}")
     
     col4, col5, col6 = st.columns(3)
     col4.metric("最新收盤價", f"{t_price:.2f} 元")
@@ -229,7 +224,4 @@ current_date_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
 today_str = datetime.datetime.now().strftime("%Y/%m/%d")
 
 process_market_dashboard(current_date_str, today_str)
-
-st.markdown("---")
-st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
 
