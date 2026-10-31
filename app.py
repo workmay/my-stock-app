@@ -1,5 +1,7 @@
 import datetime
 from io import StringIO
+import matplotlib
+matplotlib.use('Agg')  # 👈 關鍵：強制 Matplotlib 在無螢幕的雲端環境安全執行
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
