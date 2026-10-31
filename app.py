@@ -28,14 +28,21 @@ st.markdown("""
         color: #f0f6fc !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    /* 台股配色：上漲/多方用紅，下跌/空方用綠 */
-    .text-red { color: #f87171 !important; }
-    .text-green { color: #34d399 !important; }
+    /* 台股金融配色：上漲用紅，下跌用綠 */
+    .text-red { color: #f87171 !important; font-weight: bold; }
+    .text-green { color: #34d399 !important; font-weight: bold; }
+    .metric-card {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：台股專屬「紅漲綠跌」直覺配色、自選 Watchlist、進階技術指標與多空作戰指揮中心")
+st.caption("🚀 台新旗艦完全體：台股專屬「紅漲綠跌」標準配色、自選 Watchlist、進階技術指標與多空作戰指揮中心")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -55,6 +62,17 @@ quick_selected_code = watchlist_options[selected_watch_label]
 st.sidebar.markdown("---")
 st.sidebar.info("💡 **提示**：您也可以在下方主畫面輸入框直接查詢任意台美股、期貨或黃金代號。")
 
+# 輔助函數：建立台股專屬紅綠配色的自訂卡片
+def render_custom_metric(col, label, value, sub_text="", is_positive=True):
+    color_class = "text-red" if is_positive else "text-green"
+    col.markdown(f"""
+        <div class="metric-card">
+            <div style="font-size: 13px; color: #8b949e; margin-bottom: 4px;">{label}</div>
+            <div style="font-size: 22px; font-weight: bold; color: #f0f6fc; margin-bottom: 4px;">{value}</div>
+            <div style="font-size: 13px;" class="{color_class}">{sub_text}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
 # ==============================================================================
 # 🧠 二、個股明確多空佈局指揮中心與【留倉過夜防護】核心
 # ==============================================================================
@@ -69,7 +87,6 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
     stop_loss_short = round(entry_short_price * 1.03, 2)
     target_short_price = round(bb_lower, 2)
 
-    # 狀態 1：明確多方佈局 (LONG) -> 紅色系 (多)
     if rsi < 45 and price > open_p and (k_val > d_val or macd_hist > 0):
         st.success("🟩【 佈局方向：🚀 強烈偏多佈局 (LONG) 🚀 】")
         
@@ -84,7 +101,6 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         """)
         return
 
-    # 狀態 2：超賣區（等待止跌）
     if rsi < 30:
         st.warning("🟨【 佈局方向：⏳ 超賣警戒，暫時觀望等待止跌 】")
         
@@ -99,7 +115,6 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         """)
         return
 
-    # 狀態 3：明確空方佈局 (SHORT) -> 綠色系 (空)
     if price < ma20 and macd_hist < 0:
         st.error("🟥【 佈局方向：🚨 強烈偏空佈局 / 順勢放空 (SHORT) 🚨 】")
         
@@ -114,7 +129,6 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         """)
         return
 
-    # 狀態 4：常態橫盤續抱
     st.success("🟩【 佈局方向：🛡️ 多頭架構未破，續抱原部位 (HOLD) 】")
     
     c1, c2, c3 = st.columns(3)
@@ -150,44 +164,42 @@ def draw_chart(df):
     st.pyplot(fig)
 
 # ==============================================================================
-# 🚀 四、專業級大盤籌碼日報與明確多空佈局指南 (台股紅漲綠跌配色)
+# 🚀 四、專業級大盤籌碼日報與明確多空佈局指南 (嚴格落實紅漲綠跌)
 # ==============================================================================
 def process_market_dashboard(current_date_str):
     st.markdown("### 🏛️ 一、大盤加權指數與專業籌碼日報")
     st.caption(f"ℹ️ **資料來源**：券商籌碼日報與期交所統計數據 | **系統查詢時間**：{current_date_str}")
     
-    col_h1, col_h2, col_h3 = st.columns(3)
-    # 下跌改用綠色 (delta_color="normal" 在 Streamlit 中負數會自動顯示為綠色)
-    col_h1.metric("加權指數", "45,212 點", "-1,156.50 (-2.49%)")
-    col_h2.metric("大盤成交量", "9,396.05 億元")
-    col_h3.metric("市場短線情緒", "🟢 強空")
+    col1, col2, col3 = st.columns(3)
+    # 跌幅明確使用綠色
+    render_custom_metric(col1, "加權指數", "45,212 點", "↓ -1,156.50 (-2.49%)", is_positive=False)
+    render_custom_metric(col2, "大盤成交量", "9,396.05 億元", "成交量能放大")
+    render_custom_metric(col3, "市場短線情緒", "🟢 強空", "空方主導盤勢", is_positive=False)
 
     st.markdown("---")
     st.markdown("#### 📋 選擇權與期貨大戶籌碼追蹤")
     
-    c1, c2 = st.columns(2)
-    with c1:
-        st.metric("外資淨未平倉 (口)", "-92,241", delta="-2,719 口 (加減碼)")
-    with c2:
-        st.metric("散戶淨未平倉 (口)", "10,372", delta="-2,541 口 (加減碼)")
+    col4, col5 = st.columns(2)
+    render_custom_metric(col4, "外資淨未平倉 (口)", "-92,241", "↓ -2,719 口 (加減碼)", is_positive=False)
+    render_custom_metric(col5, "散戶淨未平倉 (口)", "10,372", "↓ -2,541 口 (加減碼)", is_positive=False)
 
     st.markdown("#### 💰 現貨三大法人與官股動向 (單位：億元 / 萬張)")
     
-    row1_1, row1_2, row1_3 = st.columns(3)
-    row1_1.metric("三大法人買賣超", "-1,402.2 億")
-    row1_2.metric("外資買賣超", "-1,124.7 億")
-    row1_3.metric("投信買賣超", "+236.2 億", delta_color="normal")
+    r1, r2, r3 = st.columns(3)
+    render_custom_metric(r1, "三大法人買賣超", "-1,402.2 億", "賣超調節", is_positive=False)
+    render_custom_metric(r2, "外資買賣超", "-1,124.7 億", "外資大舉匯出", is_positive=False)
+    render_custom_metric(r3, "投信買賣超", "+236.2 億", "投信持續護航", is_positive=True)
 
-    row2_1, row2_2, row2_3 = st.columns(3)
-    row2_1.metric("自營商買賣超", "-513.7 億")
-    row2_2.metric("官股護盤買賣超", "+52.14 億", delta_color="normal")
-    row2_3.metric("融資變動 / 融券變動", "-104.43 億 / +0.8 萬張")
+    r4, r5, r6 = st.columns(3)
+    render_custom_metric(r4, "自營商買賣超", "-513.7 億", "自營同步減碼", is_positive=False)
+    render_custom_metric(r5, "官股護盤買賣超", "+52.14 億", "公股積極護盤", is_positive=True)
+    render_custom_metric(r6, "融資變動 / 融券變動", "-104.43 億 / +0.8 萬張", "散戶斷頭融資大減")
 
     st.markdown("---")
     st.markdown("### 🤖 終極操盤大腦：今日大盤多空佈局指標")
     
     col_dir1, col_dir2, col_dir3 = st.columns(3)
-    col_dir1.markdown("**🎯 建議佈局方向**\n### 🟢 偏空 / 避險")
+    col_dir1.markdown("**🎯 建議佈局方向**\n### <span class='text-green'>🟢 偏空 / 避險</span>", unsafe_allow_html=True)
     col_dir2.markdown("**🛡️ 建議持倉水位**\n### `20% ~ 30%`")
     col_dir3.markdown("**⚠️ 防守觀察重點**\n### `47,726 點`")
 
