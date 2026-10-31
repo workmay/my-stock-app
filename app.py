@@ -8,6 +8,12 @@ import requests
 import streamlit as st
 import yfinance as yf
 
+# 1. 網頁頂部基礎外觀設定
+st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
+
+st.title("📈 台指期貨現貨終極操盤儀表板")
+st.caption("究極完全體：多空雙向狙擊 ＋ 大盤籌碼黃金三角 ＋ 上市櫃智慧分流 ＋ 均線攻防圖表")
+
 # ==============================================================================
 # 💡 核心技術升級：全自動雲端繁體中文字型下載器 (徹底消滅圖表豆腐字)
 # ==============================================================================
@@ -28,18 +34,11 @@ def load_chinese_font():
 font_file = load_chinese_font()
 if os.path.exists(font_file):
     try:
-        # 強迫 Matplotlib 註冊並使用下載下來的思源黑體繁體中文
         fm.fontManager.addfont(font_file)
         prop = fm.FontProperties(fname=font_file)
         plt.rcParams['font.family'] = prop.get_name()
     except:
         pass
-
-# 2. 網頁頂部基礎外觀設定
-st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
-
-st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("究極完全體：多空雙向狙擊 ＋ 大盤籌碼黃金三角 ＋ 上市櫃智慧分流 ＋ 均線攻防圖表")
 
 # 取得當前系統即時日期
 current_date_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
@@ -80,7 +79,7 @@ try:
 except:
     pass
 
-# 排版大盤三大卡片
+# 排盤大盤三大卡片
 c1, col2, col3 = st.columns(3)
 c1.metric("外資大台淨留倉", f"{net_oi_big:,} 口")
 col2.metric("小台散戶多空比", f"{retail_ratio:.2f} %")
@@ -94,7 +93,7 @@ else:
     st.info("🗒【 大盤現狀：目前屬於一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，主力與散戶力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
 
 # ==============================================================================
-# 🔍 【區塊二】個股期貨狙擊偵測系統
+# 🔍 【區塊二】個股期貨狙擊偵測系統 (萬能智慧分流版)
 # ==============================================================================
 st.markdown("---")
 st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
@@ -132,6 +131,7 @@ if stock_number:
             if df is None or df.empty:
                 st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
             else:
+                # 100% 奇摩股市純中文名稱引擎
                 company_name = "台股標的"
                 if stock_number in tw_stock_dict:
                     company_name = tw_stock_dict[stock_number]
@@ -140,7 +140,7 @@ if stock_number:
                         q_url = f"https://yahoo.com{stock_number}"
                         res_q = requests.get(q_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
                         if res_q.status_code == 200:
-                            source = res_q.json()['hits']['hits']['_source']
+                            source = res_q.json()['hits']['hits'][0]['_source']
                             company_name = source.get('cryptoName', source.get('assetName', source.get('name', '台股標的')))
                     except:
                         pass
@@ -202,7 +202,6 @@ if stock_number:
                 ax.tick_params(colors='#94a3b8', which='both')
                 ax.grid(True, linestyle=':', alpha=0.3, color='#334155')
                 
-                # 💡 這裡將圖例標籤強制使用下載好、有繁體中文字型的 property 物件
                 if os.path.exists(font_file):
                     ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', prop=prop, labelcolor='#f8fafc')
                 else:
