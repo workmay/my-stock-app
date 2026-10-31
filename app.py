@@ -28,7 +28,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
 
     if rsi < 30:
         st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】")
-        st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿軋空反彈！請勿在此盲目加空。")
+        st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿期貨軋空反彈！請勿在此盲目加空。")
         st.write("💡 **做多等待**：目前多頭尚未反擊（尚未收紅K站上5日線），空手者請靜下心等待止跌紅K出現再進場。")
         return
 
@@ -94,10 +94,10 @@ def process_market_dashboard(current_date_str, today_str):
         st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
 
 # ==============================================================================
-# 🗂️ 五、個股資料安全撈取核心 (🚀 終極黃金分流修正版)
+# 🗂️ 五、個股資料安全撈取核心 (🚀 終極黃金後綴修復通道)
 # ==============================================================================
 def process_stock_dashboard(stock_number):
-    # 金牌純中文強制保底字典
+    # 明星繁體中文保底字典
     tw_stock_dict = {
         "3481": "群創", "3260": "威剛", "2409": "友達", "2330": "台積電",
         "2317": "鴻海", "2303": "聯電", "3231": "緯創", "2603": "長榮",
@@ -108,11 +108,10 @@ def process_stock_dashboard(stock_number):
     df, ticker = None, None
     company_name = tw_stock_dict.get(stock_number, "台股標的")
     
-    # 💡 核心超級升級：【黃金現貨實體代號直衝通道】
-    # 當遇到 AU9901 或 AU9902 時，直接強迫走 Yahoo 的上櫃信託通道，不再去敲不穩定的櫃買中心 API！
+    # 💡 核心超級防呆：自動偵測並注入黃金現貨專用後綴 `.WO`
     test_ids = []
     if stock_number in ["AU9901", "AU9902"]:
-        test_ids = [f"{stock_number}.TWO"]
+        test_ids = [f"{stock_number}.WO"]
     else:
         test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
         
@@ -130,7 +129,7 @@ def process_stock_dashboard(stock_number):
         st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
         return
 
-    # 中文名稱跨網域對照解析
+    # 中文名稱對照解析
     if company_name == "台股標的":
         try:
             q_url = f"https://yahoo.com{stock_number}"
