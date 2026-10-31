@@ -15,7 +15,7 @@ import yfinance as yf
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新旗艦版", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：支援自選 Watchlist、進階技術指標 (KD/MACD/布林通道)、智慧進出場價與專業籌碼日報")
+st.caption("🚀 台新旗艦完全體：支援自選 Watchlist、進階技術指標 (KD/MACD/布林通道)、明確多空佈局指示與專業籌碼日報")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -112,7 +112,7 @@ def draw_chart(df):
     st.pyplot(fig)
 
 # ==============================================================================
-# 🚀 四、專業級大盤籌碼日報看板
+# 🚀 四、專業級大盤籌碼日報與明確多空佈局指南
 # ==============================================================================
 def process_market_dashboard(current_date_str):
     st.markdown("### 🏛️ 一、大盤加權指數與專業籌碼日報")
@@ -144,7 +144,23 @@ def process_market_dashboard(current_date_str):
     row2_2.metric("官股護盤買賣超", "+52.14 億")
     row2_3.metric("融資變動 / 融券變動", "-104.43 億 / +0.8 萬張")
 
-    st.error("🔥【 大盤氣象站：🚨 市場呈現強空結構，外資期現貨同步重倉空方 🚨 】\n\n💡 操盤策略：盤勢空方力道極強，請務必嚴格執行個股停損，降低過夜留倉風險。")
+    st.markdown("---")
+    st.markdown("### 🤖 終極操盤大腦：今日大盤多空佈局指標")
+    
+    # 明確佈局方向指示牌
+    col_dir1, col_dir2, col_dir3 = st.columns(3)
+    col_dir1.metric("🎯 建議佈局方向", "🟥 偏空 / 順勢避險", "空方絕對主導")
+    col_dir2.metric("🛡️ 建議持倉水位", "20% ~ 30%", "宜保持高現金比例")
+    col_dir3.metric("⚠️ 防守觀察重點", "47,726 點", "月線反壓防線")
+
+    st.error("""
+    🔥 **【大盤操盤戰術總結】：**
+    * **多空定調：明確偏空**。目前加權指數大幅跌破 20 日生命線，且外資期貨空單維持在 -9 萬口以上的極端歷史高位，現貨更單日重砍千億元[cite: 8]。
+    * **操作策略：**
+      1. **現貨部分**：請全面收縮多頭部位，不宜盲目逢低拉回接刀，建議保留 70% 以上現金。
+      2. **期貨部分**：以**反彈逢高佈局空單**或**買進避險 Put** 為主要策略，嚴格依據 5 日線與月線作為防守停損點。
+      3. **留倉過夜**：不建議抱多單過夜；空單若符合順勢獲利狀態，可保留少量底倉過夜續抱。
+    """)
 
 # ==============================================================================
 # 🗂️ 五、個股大腦資料安全撈取與進階指標運算核心
@@ -193,27 +209,23 @@ def process_stock_dashboard(stock_number):
             except:
                 pass
 
-    # 計算均線與布林通道 Bollinger Bands
     df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
     df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
     df['BB_Std'] = df['Close'].rolling(window=20).std().bfill().ffill()
     df['BB_Upper'] = df['MA20'] + (df['BB_Std'] * 2)
     df['BB_Lower'] = df['MA20'] - (df['BB_Std'] * 2)
     
-    # 計算 RSI
     delta = df['Close'].diff()
     gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
     df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
     df['RSI'] = df['RSI'].fillna(45.0)
 
-    # 計算 KD 指標
     low_9 = df['Low'].rolling(window=9).min().bfill()
     high_9 = df['High'].rolling(window=9).max().bfill()
     rsv = (df['Close'] - low_9) / (high_9 - low_9).replace(0, 1) * 100
     df['K'] = rsv.ewm(com=2).mean().fillna(50)
     df['D'] = df['K'].ewm(com=2).mean().fillna(50)
 
-    # 計算 MACD 指標
     exp12 = df['Close'].ewm(span=12, adjust=False).mean()
     exp26 = df['Close'].ewm(span=26, adjust=False).mean()
     df['MACD'] = exp12 - exp26
@@ -253,7 +265,6 @@ def process_stock_dashboard(stock_number):
     st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
     st.caption(f"ℹ️ **資料來源**：Yahoo Finance / 櫃買中心黃金現貨 | 📊 **數據最新生效交易日**：{trade_date_str}")
     
-    # 顯示核心價位與技術指標卡片
     col4, col5, col6 = st.columns(3)
     col4.metric("最新收盤價", f"{t_price:,.2f} 元")
     col5.metric("5日攻擊線", f"{t_ma5:,.2f} 元")
@@ -286,7 +297,6 @@ with tab1:
     st.markdown("---")
     st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
     
-    # 結合側邊欄與文字輸入框雙向連動
     stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、AU9901、TSLA）：", value=quick_selected_code).strip().upper()
 
     if stock_input:
