@@ -131,6 +131,7 @@ if stock_number:
             if df is None or df.empty:
                 st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
             else:
+                # 100% 奇摩股市純中文名稱引擎
                 company_name = "台股標的"
                 if stock_number in tw_stock_dict:
                     company_name = tw_stock_dict[stock_number]
@@ -209,12 +210,12 @@ if stock_number:
                 st.pyplot(fig)
                 
                 # ==============================================================================
-                # 💡 【區塊四】個股雙向操盤行動指南 (🎯 徹底根除 if-elif 縮排毛病，換成最穩定的獨立 if 狀態法)
+                # 💡 【區塊四】個股雙向操盤行動指南
                 # ==============================================================================
                 st.markdown("### 🔮 個股操盤行動指南：")
                 
                 local_min = min(float(today_data['Low']), float(prev_data['Low']))
-                decision_triggered = False  # 狀態把關旗標
+                decision_triggered = False  
                 
                 # 🧠 狀態 1：黃金買進做多訊號
                 if t_rsi < 45 and t_price > t_open and t_price > t_ma5:
