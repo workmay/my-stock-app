@@ -6,23 +6,26 @@ import requests
 import streamlit as st
 import yfinance as yf
 
+# -------------------------------------------------------------------------
 # 1. 網頁頂部基礎外觀設定
+# -------------------------------------------------------------------------
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("究極完全體：全球多資產相容版 (支援股票、ETF、黃金現貨與美股標的)")
+st.caption("究極完全體：全球多資產相容版 (支援股票、ETF、黃金現貨與美股標的，含動態留倉護航)")
 
-# ==============================================================================
-# 🧠 二、個股操盤大腦判斷核心 (獨立移至最外層)
-# ==============================================================================
+# -------------------------------------------------------------------------
+# 🧠 二、個股操盤大腦判斷核心 (含留倉過夜護航提示)
+# -------------------------------------------------------------------------
 def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long, stop_loss_short):
-    st.markdown("### 🔮 標的雙向操盤行動指南：")
+    st.markdown("### 🔮 標的雙向操盤與【留倉過夜防護】指南：")
     
     # 狀態 1：黃金買進做多訊號
     if rsi < 45 and price > open_p and price > ma5:
         st.success("🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】")
         st.write("➡️ **操盤提示**：價格在低檔成功打底，今日首度收紅K且強勢站上5日攻擊線，多頭主力帶頭反擊，高勝率轉折買點出現！")
         st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**（跌破近兩日低點便認輸平倉）。")
+        st.write(f"🛡️ **【留倉過夜建議】：可安心多單留倉**。底部防守點清晰，只要隔日開盤不直接跌破此防線，即可續抱過夜。")
         return
 
     # 狀態 2：超賣築底等待訊號
@@ -30,6 +33,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
         st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】")
         st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿軋空反彈！請勿在此盲目加空。")
         st.write("💡 **做多等待**：目前多頭尚未反擊（尚未收紅K站上5日線），空手者請靜下心等待止跌紅K出現再進場。")
+        st.write("🛡️ **【留倉過夜建議】：不宜抱空單留倉**。超賣區隨時有跌深強彈風險，建議空手過夜或少量佈局短多。")
         return
 
     # 狀態 3：強烈適合放空訊號
@@ -37,17 +41,19 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
         st.error("🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
         st.write("➡️ **操盤提示**：價格已收破 20 日生命線，中期趨勢全面轉空，符合放空送分題標準！")
         st.write(f"⚠️ **空單風控防線**：空單回補停損點請死守在 **{stop_loss_short} 元**。")
+        st.write(f"🛡️ **【留倉過夜建議】：可考慮空單留倉或順勢做空**。中空格局未破前可抱單過夜，讓利潤奔跑。")
         return
 
     # 狀態 4：常態橫盤震盪續抱
     st.success("🟩【 燈號：尚未符合放空標準、常態持倉續抱 】")
     st.write("➡️ **操盤提示**：價格穩守在 20 日生命線之上，多頭大戶籌碼未潰散。原本持有的多單可繼續留倉續抱。")
+    st.write("🛡️ **【留倉過夜建議】：原多單可續抱留倉**。只要守住 20 日生命線，大可放心過夜。")
 
-# ==============================================================================
+# -------------------------------------------------------------------------
 # 📊 三、Matplotlib 國際通用操盤英文圖表渲染器 (100% 徹底消滅豆腐字)
-# ==============================================================================
+# -------------------------------------------------------------------------
 def draw_chart(df):
-    st.markdown("#### 📈 均線攻防趨勢圖表")
+    st.markdown("#### 📈 均線攻防趨勢圖表 (Price / MA5 / MA20)")
     fig, ax = plt.subplots(figsize=(10, 4.5))
     
     ax.plot(df.index, df['Close'], label="Price", color="#38bdf8", linewidth=2)
@@ -63,17 +69,13 @@ def draw_chart(df):
     ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
     st.pyplot(fig)
 
-# ==============================================================================
-# 🚀 四、大盤籌碼資料安全抓取與渲染
-# ==============================================================================
-def process_market_dashboard(current_date_str, today_str):
-    st.markdown("---")
-    st.markdown("### 🏛️ 一、台指大盤盤後黃金籌碼指標")
-    st.caption(f"ℹ️ **資料來源**：臺灣期貨交易所 (TAIFEX) 官方盤後統計數據 | **系統查詢時間**：{current_date_str}")
-    
-    net_oi_big, retail_ratio, current_vix = 16500, -18.20, 14.50     
+# -------------------------------------------------------------------------
+# 🚀 四、大盤籌碼資料安全抓取與渲染 (含快取機制)
+# -------------------------------------------------------------------------
+@st.cache_data(ttl=600)
+def fetch_market_data(today_str):
+    net_oi_big, retail_ratio, current_vix = 16500, -18.20, 14.50      
     headers = {"User-Agent": "Mozilla/5.0"}
-    
     try:
         url_vstat = f"https://taifex.com.tw{today_str}&marketCode=0"
         res_vstat = requests.get(url_vstat, headers=headers, timeout=4)
@@ -84,14 +86,22 @@ def process_market_dashboard(current_date_str, today_str):
             
             tx_df = df_vstat[df_vstat['商品名稱'].str.strip() == '臺股期貨']
             foreign_tx = tx_df[tx_df['身份別'].str.strip() == '外資']
-            net_oi_big = int(foreign_tx['多空未平倉口數淨額'].values)
+            net_oi_big = int(foreign_tx['多空未平倉口數淨額'].values[0])
             
             mtx_df = df_vstat[df_vstat['商品名稱'].str.strip() == '小型臺指']
             inst_long = mtx_df['未平倉多方口數'].astype(int).sum()
             inst_short = mtx_df['未平倉空方口數'].astype(int).sum()
-            retail_ratio = (((-inst_long) - (-inst_short)) / inst_short) * 100
+            if inst_short > 0:
+                retail_ratio = (((-inst_long) - (-inst_short)) / inst_short) * 100
     except:
         pass
+    return net_oi_big, retail_ratio, current_vix
+
+def process_market_dashboard(current_date_str, today_str):
+    st.markdown("### 🏛️ 零、台指大盤盤後黃金籌碼與留倉氣象站")
+    st.caption(f"ℹ️ **資料來源**：臺灣期貨交易所 (TAIFEX) 官方盤後統計數據 | **系統查詢時間**：{current_date_str}")
+    
+    net_oi_big, retail_ratio, current_vix = fetch_market_data(today_str)
 
     col1, col2, col3 = st.columns(3)
     col1.metric("外資大台淨留倉", f"{net_oi_big:,} 口")
@@ -99,16 +109,17 @@ def process_market_dashboard(current_date_str, today_str):
     col3.metric("台指 VIX 指數", f"{current_vix:.2f}")
 
     if net_oi_big > 15000 and retail_ratio < -15 and current_vix < 16:
-        st.success("🔥【 大盤策略警報：🚀 黃金多頭送分題觸發 🚀 】🚨\n\n💡 操盤策略：外資重兵做多 ＋ 散戶放空被軋 ＋ 市場波動穩定。")
+        st.success("🔥【 大盤策略警報：🚀 黃金多頭送分題觸發 (適合多單留倉) 🚀 】🚨\n\n💡 操盤策略：外資重兵做多 ＋ 散戶放空被軋 ＋ 市場波動穩定。多單可安心抱過夜。")
     elif net_oi_big < -15000 and retail_ratio > 15 and current_vix > 20:
-        st.error("🔥【 大盤策略警報：💥 斷頭崩盤預警題觸發 💥 】🚨\n\n💡 操盤策略：外資萬口空單壓頂 ＋ 散戶死撐接刀 ＋ VIX飆高恐慌。")
+        st.error("🔥【 大盤策略警報：💥 斷頭崩盤預警題觸發 (多單切勿留倉) 💥 】🚨\n\n💡 操盤策略：外資萬口空單壓頂 ＋ 散戶死撐接刀 ＋ VIX飆高恐慌。強烈建議降倉或空手。")
     else:
-        st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
+        st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 (短線為主) 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行停損。")
 
-# ==============================================================================
-# 🗂️ 五、個股大腦資料安全撈取核心 (萬能轟炸流，支援黃金現貨與全球美股)
-# ==============================================================================
-def process_stock_dashboard(stock_number):
+# -------------------------------------------------------------------------
+# 🗂️ 五、個股大腦資料安全撈取核心 (含快取機制與多重備援)
+# -------------------------------------------------------------------------
+@st.cache_data(ttl=600)
+def fetch_stock_data(stock_number):
     tw_stock_dict = {
         "3481": "群創", "3260": "威剛", "2409": "友達", "2330": "台積電",
         "2317": "鴻海", "2303": "聯電", "3231": "緯創", "2603": "長榮",
@@ -117,53 +128,43 @@ def process_stock_dashboard(stock_number):
         "AU9901": "元大實物黃金", "AU9902": "富邦實物黃金"
     }
     
-    df, ticker = None, None
-    
-    # 💡 核心超級升級：多重代號大範圍轟炸陣列 (包含原字元、上市、上櫃)
-    test_ids = [
-        f"{stock_number}.TW",
-        f"{stock_number}.TWO",
-        stock_number  # 允許直接查美股(如TSLA)或自帶後綴的特殊標的
-    ]
+    df, ticker, company_name = None, None, tw_stock_dict.get(stock_number, "金融標的")
+    test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
     
     for tid in test_ids:
         try:
             ticker_test = yf.Ticker(tid)
             df_test = ticker_test.history(period="3mo")
-            if not df_test.empty:
+            if df_test is not None and not df_test.empty:
                 df, ticker = df_test, ticker_test
                 break
         except:
             pass
             
-    if df is None or df.empty:
-        st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
-        return
-
-    # 中文名稱對照與搜尋
-    company_name = "金融標的"
-    if stock_number in tw_stock_dict:
-        company_name = tw_stock_dict[stock_number]
-    else:
+    if df is not None and not df.empty and company_name == "金融標的":
         try:
-            q_url = f"https://yahoo.com{stock_number}"
-            res_q = requests.get(q_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
-            if res_q.status_code == 200:
-                source = res_q.json()['hits']['hits']['_source']
-                company_name = source.get('cryptoName', source.get('assetName', source.get('name', '金融標的')))
+            info = ticker.info
+            company_name = info.get('shortName', info.get('longName', '金融標的'))
         except:
             pass
-    
-    if company_name == "金融標的" or not company_name:
-        try: company_name = ticker.info.get('shortName', ticker.info.get('longName', '金融標的'))
-        except: pass
+            
+    return df, company_name
 
-    df['MA5'] = df['Close'].rolling(window=5).mean()
-    df['MA20'] = df['Close'].rolling(window=20).mean()
+def process_stock_dashboard(stock_number):
+    with st.spinner(f"正在從 Yahoo Finance 載入 【{stock_number}】 歷史資料與計算指標..."):
+        df, company_name = fetch_stock_data(stock_number)
+        
+    if df is None or df.empty:
+        st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確（例如台股代號、美股 TSLA 或黃金 AU9901）。")
+        return
+
+    df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
+    df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
     
     delta = df['Close'].diff()
     gain, loss = delta.clip(lower=0), -delta.clip(upper=0)
-    df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean() / loss.rolling(window=14).mean())))
+    df['RSI'] = 100 - (100 / (1 + (gain.rolling(window=14).mean().bfill() / loss.rolling(window=14).mean().bfill().replace(0, 1))))
+    df['RSI'] = df['RSI'].fillna(45.0)
     
     today_data = df.iloc[-1]
     prev_data = df.iloc[-2]
@@ -196,20 +197,22 @@ def process_stock_dashboard(stock_number):
     local_min = min(float(today_data['Low']), float(prev_data['Low']))
     stop_loss_long = round(local_min * 0.995, 2)
     stop_loss_short = round(t_ma20 * 1.01, 2)
+    
     render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, local_min, stop_loss_long, stop_loss_short)
 
-# ==============================================================================
+# -------------------------------------------------------------------------
 # 🎮 六、Streamlit 網頁主程式進入點
-# ==============================================================================
+# -------------------------------------------------------------------------
 current_date_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
 today_str = datetime.datetime.now().strftime("%Y/%m/%d")
 
+# 1. 渲染大盤宏觀風向與留倉氣象站
 process_market_dashboard(current_date_str, today_str)
 
 st.markdown("---")
-st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
+st.markdown("### 🏢 一、個股期貨現貨狙擊偵測器")
 
-# 提示文字升級，加入美股與黃金範例
+# 2. 個股查詢輸入框
 stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、AU9901、TSLA）：", value="3481").strip().upper()
 
 if stock_input:
