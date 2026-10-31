@@ -10,12 +10,41 @@ import streamlit as st
 import yfinance as yf
 
 # -------------------------------------------------------------------------
-# 1. 網頁頂部與側邊欄設定
+# 1. 網頁頂部、側邊欄與高質感金融 CSS 配色設定
 # -------------------------------------------------------------------------
-st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新旗艦版", layout="centered")
+st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新旗艦版", layout="centered", initial_sidebar_state="expanded")
+
+# 注入自訂 CSS，打造專業金融終端視覺質感
+st.markdown("""
+    <style>
+    /* 全域背景與字體顏色 */
+    .stApp {
+        background-color: #0d1117;
+        color: #c9d1d9;
+    }
+    /* 側邊欄樣式 */
+    section[data-testid="stSidebar"] {
+        background-color: #161b22;
+        border-right: 1px solid #30363d;
+    }
+    /* 標題與文字精緻化 */
+    h1, h2, h3 {
+        color: #f0f6fc !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    /* 資訊卡片容器 */
+    .metric-card {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：支援自選 Watchlist、進階技術指標、明確多空佈局與優化排版")
+st.caption("🚀 台新旗艦完全體：專業金融終端配色、自選 Watchlist、進階技術指標與多空作戰指揮中心")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -108,25 +137,26 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
     """)
 
 # ==============================================================================
-# 📊 三、Matplotlib 進階技術圖表渲染器
+# 📊 三、Matplotlib 進階金融美化圖表渲染器
 # ==============================================================================
 def draw_chart(df):
     st.markdown("#### 📈 進階均線與布林通道攻防趨勢圖")
     fig, ax = plt.subplots(figsize=(10, 5))
     
     ax.plot(df.index, df['Close'], label="Price", color="#38bdf8", linewidth=2)
-    ax.plot(df.index, df['MA5'], label="MA5", color="#eab308", linestyle="--")
-    ax.plot(df.index, df['MA20'], label="MA20 (Mid)", color="#ef4444", linestyle="--")
-    ax.plot(df.index, df['BB_Upper'], label="BB Upper", color="#a855f7", linestyle=":", alpha=0.7)
-    ax.plot(df.index, df['BB_Lower'], label="BB Lower", color="#22c55e", linestyle=":", alpha=0.7)
+    ax.plot(df.index, df['MA5'], label="MA5", color="#fbbf24", linestyle="--")
+    ax.plot(df.index, df['MA20'], label="MA20 (Mid)", color="#f87171", linestyle="--")
+    ax.plot(df.index, df['BB_Upper'], label="BB Upper", color="#c084fc", linestyle=":", alpha=0.8)
+    ax.plot(df.index, df['BB_Lower'], label="BB Lower", color="#34d399", linestyle=":", alpha=0.8)
     
-    fig.patch.set_facecolor('#1e293b')
-    ax.set_facecolor('#0f172a')
-    ax.title.set_color('#f8fafc')
-    ax.tick_params(colors='#94a3b8', which='both')
-    ax.grid(True, linestyle=':', alpha=0.3, color='#334155')
+    # 採用金融終端深色背景配色
+    fig.patch.set_facecolor('#161b22')
+    ax.set_facecolor('#0d1117')
+    ax.title.set_color('#f0f6fc')
+    ax.tick_params(colors='#8b949e', which='both')
+    ax.grid(True, linestyle=':', alpha=0.2, color='#30363d')
     
-    ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
+    ax.legend(loc="upper left", facecolor='#161b22', edgecolor='#30363d', labelcolor='#c9d1d9')
     st.pyplot(fig)
 
 # ==============================================================================
@@ -165,7 +195,6 @@ def process_market_dashboard(current_date_str):
     st.markdown("---")
     st.markdown("### 🤖 終極操盤大腦：今日大盤多空佈局指標")
     
-    # 改用 Markdown 呈現，避免文字過大被切斷
     col_dir1, col_dir2, col_dir3 = st.columns(3)
     col_dir1.markdown("**🎯 建議佈局方向**\n### 🟥 偏空 / 避險")
     col_dir2.markdown("**🛡️ 建議持倉水位**\n### `20% ~ 30%`")
