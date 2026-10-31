@@ -1,12 +1,41 @@
 import datetime
 from io import StringIO
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import os
 import pandas as pd
 import requests
 import streamlit as st
 import yfinance as yf
 
-# 1. 網頁頂部基礎外觀設定
+# ==============================================================================
+# 💡 核心技術升級：全自動雲端繁體中文字型下載器 (徹底消滅圖表豆腐字)
+# ==============================================================================
+@st.cache_resource
+def load_chinese_font():
+    font_url = "https://github.com"
+    font_path = "NotoSansCJKtc-Regular.ttc"
+    if not os.path.exists(font_path):
+        try:
+            response = requests.get(font_url, timeout=10)
+            if response.status_code == 200:
+                with open(font_path, "wb") as f:
+                    f.write(response.content)
+        except:
+            pass
+    return font_path
+
+font_file = load_chinese_font()
+if os.path.exists(font_file):
+    try:
+        # 強迫 Matplotlib 註冊並使用下載下來的思源黑體繁體中文
+        fm.fontManager.addfont(font_file)
+        prop = fm.FontProperties(fname=font_file)
+        plt.rcParams['font.family'] = prop.get_name()
+    except:
+        pass
+
+# 2. 網頁頂部基礎外觀設定
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
@@ -172,7 +201,12 @@ if stock_number:
                 ax.title.set_color('#f8fafc')
                 ax.tick_params(colors='#94a3b8', which='both')
                 ax.grid(True, linestyle=':', alpha=0.3, color='#334155')
-                ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
+                
+                # 💡 這裡將圖例標籤強制使用下載好、有繁體中文字型的 property 物件
+                if os.path.exists(font_file):
+                    ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', prop=prop, labelcolor='#f8fafc')
+                else:
+                    ax.legend(loc="upper left", facecolor='#1e293b', edgecolor='#334155', labelcolor='#f8fafc')
                 
                 st.pyplot(fig)
                 
@@ -192,17 +226,3 @@ if stock_number:
                 elif t_rsi < 30:
                     st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】")
                     st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿期貨軋空反彈！請勿在此盲目加空。")
-                    st.write("💡 **做多等待**：目前多頭尚未反擊（尚未收紅K站上5日線），空手者請靜下心等待「止跌紅K出現」再進場做多。")
-                    
-                elif t_price < t_ma20:
-                    stop_loss_short = round(t_ma20 * 1.01, 2)
-                    st.error("🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
-                    st.write("➡️ **操盤提示**：價格已收破 20 日生命線，中期趨勢全面轉空，符合放空送分題標準！")
-                    st.write(f"⚠️ **空單風控防線**：空單回補停損點請死守在 **{stop_loss_short} 元**。")
-                    
-                else:
-                    st.success("🟩【 燈號：尚未符合放空標準、常態持倉續抱 】")
-                    st.write("➡️ **操盤提示**：價格穩守在 20 日生命線之上，多頭大戶籌碼未潰散。原本持有的多單可繼續留倉續抱；此處無極端訊號，空手者不建議盲目進場。")
-                    
-        except Exception as e:
-            st.error(f"數據加載失敗: {str(e)}")
