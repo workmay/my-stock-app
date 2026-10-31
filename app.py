@@ -79,7 +79,7 @@ elif net_oi_big < -15000 and retail_ratio > 15 and current_vix > 20:
 else:
     st.info(
         "🗒【 大盤現狀：目前屬於一般常態盤整格局 】\n\n"
-        "➡️ 操盤策略：指標未達極端送分條件，主力與散戶力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。"
+        "➡️ 操盤策略：指標未達極端送分條件，主力與散戶力道拉鋸中。意放慢交易節奏，嚴格執行個股停損。"
     )
 
 # ==============================================================================
@@ -192,7 +192,7 @@ if stock_number:
                 t_ma20 = float(today_data["MA20"])
                 t_rsi = float(today_data["RSI"])
 
-                # 💡 自動獲取該標的歷史數據中最新一筆交易日的日期
+                # 自動獲取該標的歷史數據中最新一筆交易日的日期
                 trade_date_str = df.index[-1].strftime("%Y/%m/%d")
 
                 margin = int(t_price * 2000 * 0.135)
@@ -266,7 +266,9 @@ if stock_number:
 
                 # 🧠 條件 A：觸發【強烈買進做多】燈號（RSI偏低築底後，首度收紅K且強勢站上5日攻擊線）
                 if t_rsi < 45 and t_price > t_open and t_price > t_ma5:
-                    stop_loss_long = round(local_min * 0.995, 2)  # 多單停損點設在近兩日最低價再往下減0.5%緩衝
+                    stop_loss_long = round(
+                        local_min * 0.995, 2
+                    )  # 多單停損點設在近兩日最低價再往下減0.5%緩衝
                     st.success(
                         "🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】\n\n"
                         "➡️ **操盤提示**：股價在低檔成功打底，今日「首度收紅K」且「強勢站上5日攻擊線」，代表多頭主力帶頭反擊，高勝率轉折買點出現！\n\n"
@@ -276,4 +278,3 @@ if stock_number:
                 # 🧠 條件 B：觸發【超賣不可追空】燈號（持續大跌，RSI極度超賣但多頭還沒反擊）
                 elif t_rsi < 30:
                     st.warning(
-                        "🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】\n\n"
