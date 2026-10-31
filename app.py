@@ -10,7 +10,7 @@ import streamlit as st
 import yfinance as yf
 
 # -------------------------------------------------------------------------
-# 1. 網頁頂部、側邊欄與台股直覺配色設定 (紅漲綠跌)
+# 1. 網頁頂部、側邊欄與精緻金融配色設定
 # -------------------------------------------------------------------------
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新旗艦版", layout="centered", initial_sidebar_state="expanded")
 
@@ -28,9 +28,12 @@ st.markdown("""
         color: #f0f6fc !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    /* 台股金融配色：上漲用紅，下跌用綠 */
+    /* 專屬顏色定義 */
     .text-red { color: #f87171 !important; font-weight: bold; }
     .text-green { color: #34d399 !important; font-weight: bold; }
+    .text-white { color: #f0f6fc !important; font-weight: bold; }
+    .text-gray { color: #8b949e !important; }
+    
     .metric-card {
         background-color: #161b22;
         border: 1px solid #30363d;
@@ -38,11 +41,19 @@ st.markdown("""
         border-radius: 8px;
         margin-bottom: 10px;
     }
+    .custom-box {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 10px 15px;
+        border-radius: 6px;
+        color: #f0f6fc;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：台股專屬「紅漲綠跌」標準配色、自選 Watchlist、進階技術指標與多空作戰指揮中心")
+st.caption("🚀 台新旗艦完全體：台股專屬配色、自選 Watchlist、進階技術指標與多空作戰指揮中心")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -62,7 +73,6 @@ quick_selected_code = watchlist_options[selected_watch_label]
 st.sidebar.markdown("---")
 st.sidebar.info("💡 **提示**：您也可以在下方主畫面輸入框直接查詢任意台美股、期貨或黃金代號。")
 
-# 輔助函數：建立台股專屬紅綠配色的自訂卡片
 def render_custom_metric(col, label, value, sub_text="", is_positive=True):
     color_class = "text-red" if is_positive else "text-green"
     col.markdown(f"""
@@ -91,9 +101,9 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         st.success("🟩【 佈局方向：🚀 強烈偏多佈局 (LONG) 🚀 】")
         
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f"**🎯 建議買進價位**\n### `{entry_long_price} 元`")
-        c2.markdown(f"**🛡️ 停損防線**\n### `{stop_loss_long} 元`")
-        c3.markdown(f"**🏆 獲利目標價**\n### `{target_long_price} 元`")
+        c1.markdown(f"**🎯 建議買進價位**\n<div class='custom-box text-red'>{entry_long_price} 元</div>", unsafe_allow_html=True)
+        c2.markdown(f"**🛡️ 停損防線**\n<div class='custom-box text-gray'>{stop_loss_long} 元</div>", unsafe_allow_html=True)
+        c3.markdown(f"**🏆 獲利目標價**\n<div class='custom-box text-red'>{target_long_price} 元</div>", unsafe_allow_html=True)
 
         st.write("""
         * **操盤邏輯**：價格在低檔成功打底，技術面出現多方轉折訊號（KD黃金交叉或MACD翻多），多頭主力開始介入。
@@ -105,9 +115,9 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         st.warning("🟨【 佈局方向：⏳ 超賣警戒，暫時觀望等待止跌 】")
         
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f"**🎯 試單佈局參考**\n### `{bb_lower:.2f} 元`")
-        c2.markdown(f"**🛡️ 試單停損防線**\n### `{round(bb_lower * 0.98, 2)} 元`")
-        c3.markdown(f"**🏆 預期反彈目標**\n### `{ma20:.2f} 元`")
+        c1.markdown(f"**🎯 試單佈局參考**\n<div class='custom-box text-white'>{bb_lower:.2f} 元</div>", unsafe_allow_html=True)
+        c2.markdown(f"**🛡️ 試單停損防線**\n<div class='custom-box text-gray'>{round(bb_lower * 0.98, 2)} 元</div>", unsafe_allow_html=True)
+        c3.markdown(f"**🏆 預期反彈目標**\n<div class='custom-box text-white'>{ma20:.2f} 元</div>", unsafe_allow_html=True)
 
         st.write("""
         * **操盤邏輯**：短線跌幅過劇（RSI低於30），雖然隨時有強彈機會，但尚未出現明確多方表態，切勿盲目追空。
@@ -119,9 +129,9 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         st.error("🟥【 佈局方向：🚨 強烈偏空佈局 / 順勢放空 (SHORT) 🚨 】")
         
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f"**🎯 建議放空價位**\n### `{entry_short_price} 元`")
-        c2.markdown(f"**🛡️ 回補停損防線**\n### `{stop_loss_short} 元`")
-        c3.markdown(f"**🏆 回補目標價**\n### `{target_short_price} 元`")
+        c1.markdown(f"**🎯 建議放空價位**\n<div class='custom-box text-green'>{entry_short_price} 元</div>", unsafe_allow_html=True)
+        c2.markdown(f"**🛡️ 回補停損防線**\n<div class='custom-box text-gray'>{stop_loss_short} 元</div>", unsafe_allow_html=True)
+        c3.markdown(f"**🏆 回補目標價**\n<div class='custom-box text-green'>{target_short_price} 元</div>", unsafe_allow_html=True)
 
         st.write("""
         * **操盤邏輯**：股價已經正式跌破 20 日生命線且 MACD 綠柱擴大，中期空方結構確立，屬於標準弱勢標的。
@@ -132,9 +142,9 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
     st.success("🟩【 佈局方向：🛡️ 多頭架構未破，續抱原部位 (HOLD) 】")
     
     c1, c2, c3 = st.columns(3)
-    c1.markdown("**🎯 目前操作建議**\n### `續抱 / 逢低`")
-    c2.markdown(f"**🛡️ 月線防守支撐**\n### `{ma20:.2f} 元`")
-    c3.markdown(f"**🏆 前高壓防線**\n### `{bb_upper:.2f} 元`")
+    c1.markdown("**🎯 目前操作建議**\n<div class='custom-box text-white'>續抱 / 逢低</div>", unsafe_allow_html=True)
+    c2.markdown(f"**🛡️ 月線防守支撐**\n<div class='custom-box text-white'>{ma20:.2f} 元</div>", unsafe_allow_html=True)
+    c3.markdown(f"**🏆 前高壓防線**\n<div class='custom-box text-white'>{bb_upper:.2f} 元</div>", unsafe_allow_html=True)
 
     st.write(f"""
     * **操盤邏輯**：股價穩穩站在 20 日生命線（{ma20:.2f} 元）之上，多方格局正常運作，沒有轉空訊號。
@@ -164,14 +174,13 @@ def draw_chart(df):
     st.pyplot(fig)
 
 # ==============================================================================
-# 🚀 四、專業級大盤籌碼日報與明確多空佈局指南 (嚴格落實紅漲綠跌)
+# 🚀 四、專業級大盤籌碼日報與明確多空佈局指南
 # ==============================================================================
 def process_market_dashboard(current_date_str):
     st.markdown("### 🏛️ 一、大盤加權指數與專業籌碼日報")
     st.caption(f"ℹ️ **資料來源**：券商籌碼日報與期交所統計數據 | **系統查詢時間**：{current_date_str}")
     
     col1, col2, col3 = st.columns(3)
-    # 跌幅明確使用綠色
     render_custom_metric(col1, "加權指數", "45,212 點", "↓ -1,156.50 (-2.49%)", is_positive=False)
     render_custom_metric(col2, "大盤成交量", "9,396.05 億元", "成交量能放大")
     render_custom_metric(col3, "市場短線情緒", "🟢 強空", "空方主導盤勢", is_positive=False)
@@ -199,9 +208,10 @@ def process_market_dashboard(current_date_str):
     st.markdown("### 🤖 終極操盤大腦：今日大盤多空佈局指標")
     
     col_dir1, col_dir2, col_dir3 = st.columns(3)
-    col_dir1.markdown("**🎯 建議佈局方向**\n### <span class='text-green'>🟢 偏空 / 避險</span>", unsafe_allow_html=True)
-    col_dir2.markdown("**🛡️ 建議持倉水位**\n### `20% ~ 30%`")
-    col_dir3.markdown("**⚠️ 防守觀察重點**\n### `47,726 點`")
+    # 嚴格區分顏色：只有佈局方向維持綠色，其他改為白色與高質感灰
+    col_dir1.markdown("**🎯 建議佈局方向**\n<div class='custom-box text-green'>🟢 偏空 / 避險</div>", unsafe_allow_html=True)
+    col_dir2.markdown("**🛡️ 建議持倉水位**\n<div class='custom-box text-white'>20% ~ 30%</div>", unsafe_allow_html=True)
+    col_dir3.markdown("**⚠️ 防守觀察重點**\n<div class='custom-box text-white'>47,726 點</div>", unsafe_allow_html=True)
 
     st.warning("""
     🛡️ **【大盤操盤戰術總結】：**
