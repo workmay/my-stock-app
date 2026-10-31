@@ -10,7 +10,7 @@ import streamlit as st
 import yfinance as yf
 
 # -------------------------------------------------------------------------
-# 1. 網頁頂部、側邊欄與精緻金融配色設定
+# 1. 網頁頂部、側邊欄與高質感金融排版 CSS 設定
 # -------------------------------------------------------------------------
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新旗艦版", layout="centered", initial_sidebar_state="expanded")
 
@@ -28,12 +28,12 @@ st.markdown("""
         color: #f0f6fc !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    /* 專屬顏色定義 */
+    /* 顏色定義 */
     .text-red { color: #f87171 !important; font-weight: bold; }
     .text-green { color: #34d399 !important; font-weight: bold; }
     .text-white { color: #f0f6fc !important; font-weight: bold; }
-    .text-gray { color: #8b949e !important; }
     
+    /* 卡片與區塊樣式，增加 margin-top 確保上下不會黏在一起 */
     .metric-card {
         background-color: #161b22;
         border: 1px solid #30363d;
@@ -44,10 +44,12 @@ st.markdown("""
     .custom-box {
         background-color: #161b22;
         border: 1px solid #30363d;
-        padding: 10px 15px;
+        padding: 12px 15px;
         border-radius: 6px;
         color: #f0f6fc;
         font-weight: bold;
+        margin-top: 5px;
+        margin-bottom: 15px; /* 增加下方呼吸空間 */
     }
     </style>
 """, unsafe_allow_html=True)
@@ -102,7 +104,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         
         c1, c2, c3 = st.columns(3)
         c1.markdown(f"**🎯 建議買進價位**\n<div class='custom-box text-red'>{entry_long_price} 元</div>", unsafe_allow_html=True)
-        c2.markdown(f"**🛡️ 停損防線**\n<div class='custom-box text-gray'>{stop_loss_long} 元</div>", unsafe_allow_html=True)
+        c2.markdown(f"**🛡️ 停損防線**\n<div class='custom-box text-white'>{stop_loss_long} 元</div>", unsafe_allow_html=True)
         c3.markdown(f"**🏆 獲利目標價**\n<div class='custom-box text-red'>{target_long_price} 元</div>", unsafe_allow_html=True)
 
         st.write("""
@@ -116,7 +118,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         
         c1, c2, c3 = st.columns(3)
         c1.markdown(f"**🎯 試單佈局參考**\n<div class='custom-box text-white'>{bb_lower:.2f} 元</div>", unsafe_allow_html=True)
-        c2.markdown(f"**🛡️ 試單停損防線**\n<div class='custom-box text-gray'>{round(bb_lower * 0.98, 2)} 元</div>", unsafe_allow_html=True)
+        c2.markdown(f"**🛡️ 試單停損防線**\n<div class='custom-box text-white'>{round(bb_lower * 0.98, 2)} 元</div>", unsafe_allow_html=True)
         c3.markdown(f"**🏆 預期反彈目標**\n<div class='custom-box text-white'>{ma20:.2f} 元</div>", unsafe_allow_html=True)
 
         st.write("""
@@ -130,7 +132,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
         
         c1, c2, c3 = st.columns(3)
         c1.markdown(f"**🎯 建議放空價位**\n<div class='custom-box text-green'>{entry_short_price} 元</div>", unsafe_allow_html=True)
-        c2.markdown(f"**🛡️ 回補停損防線**\n<div class='custom-box text-gray'>{stop_loss_short} 元</div>", unsafe_allow_html=True)
+        c2.markdown(f"**🛡️ 回補停損防線**\n<div class='custom-box text-white'>{stop_loss_short} 元</div>", unsafe_allow_html=True)
         c3.markdown(f"**🏆 回補目標價**\n<div class='custom-box text-green'>{target_short_price} 元</div>", unsafe_allow_html=True)
 
         st.write("""
@@ -208,10 +210,12 @@ def process_market_dashboard(current_date_str):
     st.markdown("### 🤖 終極操盤大腦：今日大盤多空佈局指標")
     
     col_dir1, col_dir2, col_dir3 = st.columns(3)
-    # 嚴格區分顏色：只有佈局方向維持綠色，其他改為白色與高質感灰
     col_dir1.markdown("**🎯 建議佈局方向**\n<div class='custom-box text-green'>🟢 偏空 / 避險</div>", unsafe_allow_html=True)
     col_dir2.markdown("**🛡️ 建議持倉水位**\n<div class='custom-box text-white'>20% ~ 30%</div>", unsafe_allow_html=True)
     col_dir3.markdown("**⚠️ 防守觀察重點**\n<div class='custom-box text-white'>47,726 點</div>", unsafe_allow_html=True)
+
+    # 增加上方的空間區隔，避免與上方卡片黏在一起
+    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
     st.warning("""
     🛡️ **【大盤操盤戰術總結】：**
