@@ -10,10 +10,10 @@ import yfinance as yf
 # -------------------------------------------------------------------------
 # 1. 網頁頂部基礎外觀設定
 # -------------------------------------------------------------------------
-st.set_page_config(page_title="台指期貨現貨終極操盤儀表板", layout="centered")
+st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新專屬版", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 旗艦雙模完全體：支援技術分析、留倉護航、黃金現貨與 Shioaji 盤中即時報價架構")
+st.caption("🚀 台新旗艦完全體：支援技術分析、留倉護航、黃金現貨與台新證券/期貨 API 串接架構")
 
 # -------------------------------------------------------------------------
 # 🧠 二、個股操盤大腦判斷核心 (含留倉過夜護航提示)
@@ -25,7 +25,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
         st.success("🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】")
         st.write("➡️ **操盤提示**：價格在低檔成功打底，今日首度收紅K且強勢站上5日攻擊線，多頭主力帶頭反擊，高勝率轉折買點出現！")
         st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**。")
-        st.write(f"🛡️ **【留倉過夜建議】：可安心多單留倉**。底部防守點清晰，只要隔日開盤不直接跌破此防線，即可續抱過夜。")
+        st.write(f"🛡️ **【留倉過夜建議】：可安心多單留倉**。底部防守點清晰，只要隔日開盤不跌破此防線，即可續抱過夜。")
         return
 
     if rsi < 30:
@@ -47,7 +47,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
     st.write("🛡️ **【留倉過夜建議】：原多單可續抱留倉**。只要守住 20 日生命線，大可放心過夜。")
 
 # -------------------------------------------------------------------------
-# 📊 三、Matplotlib 國際通用操盤英文圖表渲染器
+# 📊 三、Matplotlib 圖表渲染器 (純英文防豆腐字)
 # -------------------------------------------------------------------------
 def draw_chart(df):
     st.markdown("#### 📈 均線攻防趨勢圖表 (Price / MA5 / MA20)")
@@ -67,7 +67,7 @@ def draw_chart(df):
     st.pyplot(fig)
 
 # -------------------------------------------------------------------------
-# 🗂️ 四、資料抓取核心 (支援黃金現貨備援與多資產)
+# 🗂️ 四、資料抓取核心
 # -------------------------------------------------------------------------
 @st.cache_data(ttl=600)
 def fetch_stock_data(stock_number):
@@ -115,14 +115,13 @@ def fetch_stock_data(stock_number):
     return df, company_name
 
 # -------------------------------------------------------------------------
-# 🎮 五、網頁主介面與分頁切換 (模式一 vs 模式二)
+# 🎮 五、網頁主介面
 # -------------------------------------------------------------------------
-tab1, tab2 = st.tabs(["📊 模式一：盤後技術分析與留倉護航", "⚡ 模式二：盤中即時報價 (Shioaji 整合預備)"])
+tab1, tab2 = st.tabs(["📊 模式一：盤後技術分析與留倉護航", "🔴 模式二：台新證券/期貨 盤中即時報價串接"])
 
 with tab1:
     st.markdown("### 🏛️ 台指大盤氣象站與個股狙擊偵測器")
     
-    # 快捷自選股按鈕列
     st.markdown("💡 **快速點選常用標的**：")
     col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
     selected_quick = None
@@ -169,38 +168,4 @@ with tab1:
             
             c1, c2, c3 = st.columns(3)
             c1.metric("最新收盤價", f"{t_price:,.2f} 元")
-            c2.metric("5日攻擊線", f"{t_ma5:,.2f} 元")
-            c3.metric("20日生命線", f"{t_ma20:,.2f} 元")
-            
-            c4, c5, c6 = st.columns(3)
-            c4.metric("期貨估算保證金", f"$ {margin:,}")
-            c5.metric("每跳一檔損益", f"$ {tick}")
-            c6.metric("目前 RSI 指標", f"{t_rsi:.2f}")
-            
-            draw_chart(df)
-            
-            local_min = min(float(today_data['Low']), float(prev_data['Low']))
-            stop_loss_long = round(local_min * 0.995, 2)
-            stop_loss_short = round(t_ma20 * 1.01, 2)
-            render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, local_min, stop_loss_long, stop_loss_short)
-
-with tab2:
-    st.markdown("### ⚡ 永豐金 Shioaji 盤中即時報價串接架構")
-    st.info("💡 **說明**：若您要在盤中（09:00 - 13:30）抓取零延遲即時報價，可於下方填入您的 Shioaji 模擬或真實帳密進行連線。")
-    
-    with st.expander("🔑 點此展開 Shioaji 登入設定"):
-        api_key = st.text_input("API Key (ApiKey)", type="password")
-        secret_key = st.text_input("Secret Key (SecretKey)", type="password")
-        if st.button("測試連線並取得即時報價"):
-            if not api_key or not secret_key:
-                st.warning("⚠️ 請先輸入您的 API Key 與 Secret Key。")
-            else:
-                try:
-                    # 示範 Shioaji 引入與初始化骨架
-                    import shioaji as sj
-                    api = sj.Shioaji()
-                    # 實際登入程式碼範例：
-                    # api.login(api_key=api_key, secret_key=secret_key)
-                    st.success("🟢 Shioaji 模組載入成功！(請在正式環境解除 api.login 註解以連線永豐金伺服器)")
-                except ImportError:
-                    st.error("❌ 系統尚未安裝 shioaji 套件。請在終端機執行 `pip install shioaji` 即可安裝。")
+            c2.metric("
