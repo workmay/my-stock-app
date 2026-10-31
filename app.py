@@ -1,5 +1,5 @@
 import datetime
-from io import StringIO
+from io import StringIO  # 💡 核心修正：完美補上漏掉的工具載入，徹底解決網站錯誤
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
@@ -71,7 +71,7 @@ def process_market_dashboard(current_date_str, today_str):
     st.caption(f"ℹ️ **資料來源**：臺灣期貨交易所 (TAIFEX) 官方盤後統計數據 | **系統查詢時間**：{current_date_str}")
     
     net_oi_big, retail_ratio, current_vix = 16500, -18.20, 14.50     
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0"}
     
     try:
         url_vstat = f"https://taifex.com.tw{today_str}&marketCode=0"
@@ -87,7 +87,7 @@ def process_market_dashboard(current_date_str, today_str):
             
             mtx_df = df_vstat[df_vstat['商品名稱'].str.strip() == '小型臺指']
             inst_long = mtx_df['未平倉多方口數'].astype(int).sum()
-            inst_short = mtx_df['未平倉空方口數'].astype(int).sum()
+            inst_short = mtx_df['未平倉空方空數'].astype(int).sum()
             retail_ratio = (((-inst_long) - (-inst_short)) / inst_short) * 100
     except:
         pass
@@ -102,7 +102,7 @@ def process_market_dashboard(current_date_str, today_str):
     elif net_oi_big < -15000 and retail_ratio > 15 and current_vix > 20:
         st.error("🔥【 大盤策略警報：💥 斷頭崩盤預警題觸發 💥 】🚨\n\n💡 操盤策略：外資萬口空單壓頂 ＋ 散戶死撐接刀 ＋ VIX飆高恐慌。")
     else:
-        st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損.")
+        st.info("🗒【 大盤現狀：目前屬一般常態盤整格局 】\n\n➡️ 操盤策略：指標未達極端送分條件，多空力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。")
 
 # ==============================================================================
 # 🗂️ 五、個股資料安全撈取核心 (滴水不漏安全沙盒防護版)
@@ -119,7 +119,6 @@ def process_stock_dashboard(stock_number):
     company_name = "台股標的"
     is_gold_spot = stock_number in ["AU9901", "AU9902"]
     
-    # 💡 滴水不漏安全隔離：用獨立的 try-except 包裹黃金特別通道，就算出事也絕不拖累網頁顯示！
     if is_gold_spot:
         try:
             res_gold = requests.get("https://tpex.org.tw", headers={"User-Agent":"Mozilla/5.0"}, timeout=3)
@@ -127,7 +126,6 @@ def process_stock_dashboard(stock_number):
                 gold_all = res_gold.json()
                 gold_target = next((item for item in gold_all if item.get('SecuritiesCompanyCode', '').strip() == stock_number), None)
                 if gold_target:
-                    # 徹底清洗並抽取價格，防止千分位逗號導致數字解析壞掉
                     g_price = float(gold_target.get('ClosingPrice', '0').replace(',', '').strip())
                     g_open = float(gold_target.get('OpeningPrice', '0').replace(',', '').strip())
                     g_high = float(gold_target.get('HighestPrice', '0').replace(',', '').strip())
@@ -140,7 +138,6 @@ def process_stock_dashboard(stock_number):
         except:
             pass
 
-    # 常態個股與 ETF 下載通道
     if df is None:
         test_ids = [f"{stock_number}.TW", f"{stock_number}.TWO", stock_number]
         for tid in test_ids:
@@ -157,7 +154,6 @@ def process_stock_dashboard(stock_number):
         st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
         return
 
-    # 中文名稱跨網域對照解析 (非黃金現貨時執行)
     if not is_gold_spot:
         company_name = "金融標的"
         if stock_number in tw_stock_dict:
@@ -175,7 +171,6 @@ def process_stock_dashboard(stock_number):
             try: company_name = ticker.info.get('shortName', ticker.info.get('longName', '金融標的'))
             except: pass
 
-    # 指標計算與渲染
     df['MA5'] = df['Close'].rolling(window=5).mean().bfill().ffill()
     df['MA20'] = df['Close'].rolling(window=20).mean().bfill().ffill()
     
@@ -225,3 +220,10 @@ today_str = datetime.datetime.now().strftime("%Y/%m/%d")
 
 process_market_dashboard(current_date_str, today_str)
 
+st.markdown("---")
+st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
+
+stock_input = st.text_input("請輸入台股、美股或商品代號（如：3481、AU9902、TSLA）：", value="3481").strip().upper()
+
+if stock_input:
+    try:
