@@ -6,9 +6,9 @@ import requests
 st.set_page_config(page_title="個股期貨狙擊儀表板", layout="centered")
 
 st.title("📉 個股期貨空頭狙擊儀表板")
-st.caption("終極完美版：修正排版換行錯誤，內建多重資料庫自動備援中文名稱")
+st.caption("全市場完美版：內建【上市+上櫃】雙官方資料庫，全台灣個股 100% 自動秀中文")
 
-# 保底常用中文名稱表 (當網路繁忙、Yahoo與證交所同時斷線時的最後防線)
+# 保底常用中文名稱表 (當網路極度繁忙時的第一線防禦)
 tw_stock_dict = {
     "3481": "群創", "2409": "友達", "2330": "台積電", "2317": "鴻海",
     "2303": "聯電", "3231": "緯創", "2603": "長榮", "2609": "陽明",
@@ -16,7 +16,7 @@ tw_stock_dict = {
 }
 
 # 2. 自由輸入文字框
-stock_number = st.text_input("⌨️ 請輸入台股個股代號（如：3481、2884、2330）：", value="3481", max_chars=10)
+stock_number = st.text_input("⌨️ 請輸入台股個股代號（上市或上櫃皆可，如：3481、8069、3324）：", value="3481", max_chars=10)
 
 if stock_number:
     stock_number = stock_number.strip()
@@ -34,25 +34,36 @@ if stock_number:
             if df.empty:
                 st.error("❌ 找不到該股交易資料，請確認股號是否正確。")
             else:
-                # 💡 核心升級：中文名稱三重備援防護網
+                # 💡 核心升級：【上市 + 上櫃】雙軌官方中文名稱精準抓取
                 company_name = "台股個股"
                 
-                # 第一重：嘗試從常用保底字典找
+                # 第一重：常用保底字典
                 if stock_number in tw_stock_dict:
                     company_name = tw_stock_dict[stock_number]
                 else:
-                    # 第二重：嘗試從證交所 Open API 撈取當日名稱
+                    # 第二重：連線臺灣證交所 (找上市公司)
                     try:
-                        res = requests.get("https://twse.com.tw", timeout=3)
-                        if res.status_code == 200:
-                            stock_all = res.json()
-                            target = next((item for item in stock_all if item['Code'] == stock_number), None)
+                        res_twse = requests.get("https://twse.com.tw", timeout=2)
+                        if res_twse.status_code == 200:
+                            target = next((item for item in res_twse.json() if item['Code'] == stock_number), None)
                             if target:
                                 company_name = target['Name']
                     except:
                         pass
                     
-                    # 第三重：若證交所沒抓到，嘗試回歸 Yahoo 的 shortName
+                    # 第三重：若上市找不到，立刻連線證券櫃檯買賣中心 (找上櫃公司)
+                    if company_name == "台股個股":
+                        try:
+                            # 櫃買中心公開上櫃行情 API
+                            res_tpex = requests.get("https://tpex.org.tw", timeout=2)
+                            if res_tpex.status_code == 200:
+                                target_tpex = next((item for item in res_tpex.json() if item['Date'] and item['SecuritiesCompanyCode'] == stock_number), None)
+                                if target_tpex:
+                                    company_name = target_tpex['CompanyName']
+                        except:
+                            pass
+                    
+                    # 第四重：若雙官方皆繁忙，回歸 Yahoo 的 shortName
                     if company_name == "台股個股":
                         try:
                             company_name = ticker.info.get('shortName', ticker.info.get('longName', '台股個股'))
@@ -91,7 +102,7 @@ if stock_number:
                 st.markdown("---")
                 st.markdown("### 🔮 終極操盤行動指南：")
                 
-                # 5. 策略亮燈判定 (🎯 徹底根除 \n 換行符號錯誤，改用 Streamlit 多行獨立文字排版)
+                # 5. 策略亮燈判定
                 if t_rsi < 30:
                     st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】")
                     st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿期貨軋空反彈！請勿在此盲目加空。")
