@@ -131,7 +131,6 @@ if stock_number:
             if df is None or df.empty:
                 st.error(f"❌ 找不到該標的 【{stock_number}】 交易資料，請確認代號是否正確。")
             else:
-                # 100% 奇摩股市純中文名稱引擎
                 company_name = "台股標的"
                 if stock_number in tw_stock_dict:
                     company_name = tw_stock_dict[stock_number]
@@ -140,7 +139,7 @@ if stock_number:
                         q_url = f"https://yahoo.com{stock_number}"
                         res_q = requests.get(q_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
                         if res_q.status_code == 200:
-                            source = res_q.json()['hits']['hits'][0]['_source']
+                            source = res_q.json()['hits']['hits']['_source']
                             company_name = source.get('cryptoName', source.get('assetName', source.get('name', '台股標的')))
                     except:
                         pass
@@ -210,18 +209,20 @@ if stock_number:
                 st.pyplot(fig)
                 
                 # ==============================================================================
-                # 💡 【區塊四】個股雙向操盤行動指南
+                # 💡 【區塊四】個股雙向操盤行動指南 (🎯 徹底根除 if-elif 縮排毛病，換成最穩定的獨立 if 狀態法)
                 # ==============================================================================
                 st.markdown("### 🔮 個股操盤行動指南：")
                 
                 local_min = min(float(today_data['Low']), float(prev_data['Low']))
+                decision_triggered = False  # 狀態把關旗標
                 
+                # 🧠 狀態 1：黃金買進做多訊號
                 if t_rsi < 45 and t_price > t_open and t_price > t_ma5:
                     stop_loss_long = round(local_min * 0.995, 2)
                     st.success("🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】")
                     st.write("➡️ **操盤提示**：股價在低檔成功打底，今日「首度收紅K」且「強勢站上5日攻擊線」，代表多頭主力帶頭反擊，高勝率轉折買點出現！")
                     st.write(f"⚠️ **多單風控防線**：進場做多後，多單精準停損價請死守在 **{stop_loss_long} 元**（跌破近兩日低點便認輸平倉）。")
+                    decision_triggered = True
                     
-                elif t_rsi < 30:
-                    st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可追空 】")
-                    st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿期貨軋空反彈！請勿在此盲目加空。")
+                # 🧠 狀態 2：超賣築底等待訊號
+                if not decision_triggered and t_rsi < 30:
