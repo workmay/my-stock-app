@@ -15,7 +15,7 @@ import yfinance as yf
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新旗艦版", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：支援台新大盤即時氣象、三大法人期貨籌碼、全球多資產技術分析與 API 串接架構")
+st.caption("🚀 台新旗艦完全體：支援專業籌碼日報、全球多資產技術分析、留倉護航與台新 API 串接架構")
 
 # ==============================================================================
 # 🧠 二、個股操盤大腦判斷核心 (含詳細留倉過夜護航提示)
@@ -41,7 +41,7 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, low_min, stop_loss_long,
         st.error("🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
         st.write("➡️ **操盤提示**：價格已收破 20 日生命線，中期趨勢全面轉空，符合放空送分題標準！")
         st.write(f"⚠️ **空單風控防線**：空單回補停損點請死守在 **{stop_loss_short} 元**。")
-        st.write("🛡️ **【留倉過夜建議】：可考慮空單留倉或順勢做空**：中空格局未破前可抱單過夜。")
+        st.write("🛡️ **【留倉過夜建議】：可考慮空單留倉或順勢做空**。中空格局未破前可抱單過夜。")
         return
 
     st.success("🟩【 燈號：尚未符合放空標準、常態持倉續抱 】")
@@ -69,63 +69,42 @@ def draw_chart(df):
     st.pyplot(fig)
 
 # ==============================================================================
-# 🚀 四、大盤即時氣象、指數動態與三大法人期貨淨未平倉指標
+# 🚀 四、專業級大盤籌碼日報看板
 # ==============================================================================
 def process_market_dashboard(current_date_str):
-    st.markdown("### 🏛️ 一、台指大盤即時氣象與三大法人期貨籌碼")
-    st.caption(f"ℹ️ **資料來源**：Yahoo Finance (^TWII) ＋ 臺灣期交所三大法人期貨未平倉統計 | **系統查詢時間**：{current_date_str}")
+    st.markdown("### 🏛️ 一、大盤加權指數與專業籌碼日報")
+    st.caption(f"ℹ️ **資料來源**：券商籌碼日報與期交所統計數據 | **系統查詢時間**：{current_date_str}")
     
-    # 1. 抓取大盤指數與 20 MA
-    twii_close, twii_change, twii_ma20 = 23000.0, 0.0, 23000.0
-    try:
-        twii = yf.Ticker("^TWII")
-        df_twii = twii.history(period="2mo")
-        if not df_twii.empty:
-            df_twii['MA20'] = df_twii['Close'].rolling(window=20).mean()
-            twii_close = float(df_twii['Close'].iloc[-1])
-            twii_prev = float(df_twii['Close'].iloc[-2])
-            twii_change = ((twii_close - twii_prev) / twii_prev) * 100
-            twii_ma20 = float(df_twii['MA20'].iloc[-1])
-    except:
-        pass
+    # 頂部大盤核心數據展示 (對應您的籌碼日報截圖)
+    col_h1, col_h2, col_h3 = st.columns(3)
+    col_h1.metric("加權指數", "45,212 點", "-1,156.50 (-2.49%)", delta_color="inverse")
+    col_h2.metric("大盤成交量", "9,396.05 億元")
+    col_h3.metric("市場短線情緒", "🔴 強空")
 
-    # 顯示大盤指數核心欄位
-    col1, col2, col3 = st.columns(3)
-    col1.metric("台股加權指數", f"{twii_close:,.2f} 點", f"{twii_change:+.2f}%")
-    col2.metric("大盤 20日生命線", f"{twii_ma20:,.2f} 點")
+    st.markdown("---")
+    st.markdown("#### 📋 選擇權與期貨大戶籌碼追蹤")
     
-    if twii_close > twii_ma20 and twii_change > 0:
-        col3.metric("大盤短線多空燈號", "🟢 多頭穩健")
-        st.success("🔥【 大盤氣象站：🚀 大盤指數站穩 20 日生命線上方 🚀 】\n\n💡 操盤策略：大盤結構偏多，個股拉回可尋求優質標的佈局，維持正常留倉。")
-    elif twii_close < twii_ma20:
-        col3.metric("大盤短線多空燈號", "🔴 空頭修正")
-        st.error("🔥【 大盤氣象站：🚨 大盤指數已跌破 20 日生命線 🚨 】\n\n💡 操盤策略：盤勢轉趨弱勢修正，大盤空方掌控中！請務必嚴格執行個股停損，降低過夜留倉風險。")
-    else:
-        col3.metric("大盤短線多空燈號", "🟡 震盪互陳")
-        st.info("🗒【 大盤氣象站：目前處於月線附近拉鋸震盪格局 】\n\n➡️ 操盤策略：多空未分勝負，建議放慢交易節奏，嚴格控管資金水位。")
+    # 期貨籌碼欄位 (口數與加減碼)[cite: 8]
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric("外資淨未平倉 (口)", "-92,241", delta="-2,719 口 (加減碼)", delta_color="inverse")
+    with c2:
+        st.metric("散戶淨未平倉 (口)", "10,372", delta="-2,541 口 (加減碼)")
 
-    # 2. 抓取或帶入三大法人期貨淨未平倉口數（臺股期貨契約）
-    st.markdown("#### 👥 臺灣期貨交易所：三大法人期貨淨未平倉口數統計")
+    st.markdown("#### 💰 現貨三大法人與官股動向 (單位：億元 / 萬張)")
     
-    # 預設預設值（確保連線期交所失敗或非盤後時能安全顯示近期參考結構）
-    foreign_net_oi,投信_net_oi, self_net_oi = -12450, 1820, -3250
-    
-    try:
-        # 嘗試連線期交所三大法人期貨未平倉 API / 網頁
-        today_str = datetime.datetime.now().strftime("%Y%m%d")
-        url_inst = f"https://www.taifex.com.tw/cht/3/futInstData?queryDate={today_str}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        res = requests.get(url_inst, headers=headers, timeout=3)
-        if res.status_code == 200 and "外資" in res.text:
-            # 實際環境若成功解析可在此處理，若無則由例外處理帶入安全數據
-            pass
-    except:
-        pass
+    # 現貨買賣超欄位[cite: 8]
+    row1_1, row1_2, row1_3 = st.columns(3)
+    row1_1.metric("三大法人買賣超", "-1,402.2 億", delta_color="inverse")
+    row1_2.metric("外資買賣超", "-1,124.7 億", delta_color="inverse")
+    row1_3.metric("投信買賣超", "+236.2 億")
 
-    col_i1, col_i2, col_i3 = st.columns(3)
-    col_i1.metric("外資/陸資 期貨淨未平倉", f"{foreign_net_oi:,} 口", delta=f"{foreign_net_oi:+d}", delta_color="inverse")
-    col_i2.metric("投信 期貨淨未平倉", f"{投信_net_oi:,} 口", delta=f"{投信_net_oi:+d}")
-    col_i3.metric("自營商 期貨淨未平倉", f"{self_net_oi:,} 口", delta=f"{self_net_oi:+d}", delta_color="inverse")
+    row2_1, row2_2, row2_3 = st.columns(3)
+    row2_1.metric("自營商買賣超", "-513.7 億", delta_color="inverse")
+    row2_2.metric("官股護盤買賣超", "+52.14 億")
+    row2_3.metric("融資變動 / 融券變動", "-104.43 億 / +0.8 萬張")
+
+    st.error("🔥【 大盤氣象站：🚨 市場呈現強空結構，外資期現貨同步重倉空方 🚨 】\n\n💡 操盤策略：盤勢空方力道極強，請務必嚴格執行個股停損，降低過夜留倉風險。")
 
 # ==============================================================================
 # 🗂️ 五、個股大腦資料安全撈取核心 (嚴格黃金現貨攔截)
@@ -280,4 +259,3 @@ with tab2:
                 st.warning("⚠️ 請輸入台新交易帳號與密碼。")
             else:
                 st.success(f"🟢 【帳號 {ts_user} 驗證成功】已就緒！盤中即可接收台指期貨與台股即時 Tick 報價。")
-            
