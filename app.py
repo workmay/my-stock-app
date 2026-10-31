@@ -1,4 +1,5 @@
 import datetime
+from io import StringIO
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
@@ -13,10 +14,17 @@ st.caption(
     "究極完全體：大盤籌碼黃金三角 ＋ 個股上市櫃智慧分流 ＋ 100% 純中文名 ＋ 動態 K 線均線圖表"
 )
 
+# 取得當前系統即時日期
+current_date_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+
 # ==============================================================================
 # 📊 【區塊一】大盤期貨核心留倉籌碼儀表板 (每天盤後自動連網比對送分題)
 # ==============================================================================
+st.markdown("---")
 st.markdown("### 🏛️ 一、台指大盤盤後黃金籌碼指標")
+st.caption(
+    f"ℹ️ **資料來源**：臺灣期貨交易所 (TAIFEX) 官方盤後統計數據 | **系統查詢時間**：{current_date_str}"
+)
 
 today_str = datetime.datetime.now().strftime("%Y/%m/%d")
 headers = {
@@ -55,7 +63,7 @@ c1.metric("外資大台淨留倉", f"{net_oi_big:,} 口")
 col2.metric("小台散戶多空比", f"{retail_ratio:.2f} %")
 col3.metric("台指 VIX 指數", f"{current_vix:.2f}")
 
-# 🚀 大盤送分題警報系統亮燈
+# 大盤送分題警報系統亮燈
 if net_oi_big > 15000 and retail_ratio < -15 and current_vix < 16:
     st.success(
         "🔥【 🚨 大盤策略警報：🚀 黃金多頭送分題觸發 🚀 】🚨\n\n"
@@ -74,11 +82,10 @@ else:
         "➡️ 操盤策略：指標未達極端送分條件，主力與散戶力道拉鋸中。建議放慢交易節奏，嚴格執行個股停損。"
     )
 
-st.markdown("---")
-
 # ==============================================================================
 # 🔍 【區塊二】個股期貨狙擊偵測系統 (自由輸入 ＋ 雙軌分流 ＋ 純中文名)
 # ==============================================================================
+st.markdown("---")
 st.markdown("### 🏢 二、個股期貨現貨狙擊偵測器")
 
 # 保底明星個股與 ETF 純中文對照表
@@ -141,7 +148,7 @@ if stock_number:
                             q_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3
                         )
                         if res_q.status_code == 200:
-                            source = res_q.json()["hits"]["hits"][0]["_source"]
+                            source = res_q.json()["hits"]["hits"]["_source"]
                             company_name = source.get(
                                 "cryptoName",
                                 source.get("assetName", source.get("name", "台股標的")),
@@ -182,12 +189,18 @@ if stock_number:
                 t_ma20 = float(today_data["MA20"])
                 t_rsi = float(today_data["RSI"])
 
+                # 💡 自動獲取該標的歷史數據中最新一筆交易日的日期
+                trade_date_str = df.index[-1].strftime("%Y/%m/%d")
+
                 margin = int(t_price * 2000 * 0.135)
                 tick = 100 if t_price < 50 else (200 if t_price < 100 else 1000)
                 stop_loss = round(t_ma20 * 1.01, 2)
 
                 # 呈現個股完整數據
                 st.subheader(f"🏢 檢查標的：{stock_number} {company_name}")
+                st.caption(
+                    f"ℹ️ **資料來源**：Yahoo Finance 全球金融資料庫 | 📊 **數據最新生效交易日**：{trade_date_str}"
+                )
 
                 col4, col5, col6 = st.columns(3)
                 col4.metric("最新收盤價", f"{t_price:.2f} 元")
@@ -204,9 +217,27 @@ if stock_number:
                 # ==============================================================================
                 st.markdown("#### 📈 均線攻防趨勢圖表")
                 fig, ax = plt.subplots(figsize=(10, 4.5))
-                ax.plot(df.index, df["Close"], label="每日收盤價", color="#38bdf8", linewidth=2)
-                ax.plot(df.index, df["MA5"], label="5日攻擊線", color="#eab308", linestyle="--")
-                ax.plot(df.index, df["MA20"], label="20日生命線", color="#ef4444", linestyle="--")
+                ax.plot(
+                    df.index,
+                    df["Close"],
+                    label="每日收盤價",
+                    color="#38bdf8",
+                    linewidth=2,
+                )
+                ax.plot(
+                    df.index,
+                    df["MA5"],
+                    label="5日攻擊線",
+                    color="#eab308",
+                    linestyle="--",
+                )
+                ax.plot(
+                    df.index,
+                    df["MA20"],
+                    label="20日生命線",
+                    color="#ef4444",
+                    linestyle="--",
+                )
 
                 # 圖表美化黑金風
                 fig.patch.set_facecolor("#1e293b")
