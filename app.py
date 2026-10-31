@@ -53,7 +53,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：雙向多空作戰計畫、動態大盤、自選 Watchlist 與進階技術指標")
+st.caption("🚀 台新旗艦完全體：穩定多維度指標、雙向作戰計畫、動態大盤與自選 Watchlist")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -84,46 +84,45 @@ def render_custom_metric(col, label, value, sub_text="", is_positive=True):
     """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 🧠 二、個股雙向【作多與作空】作戰指揮中心
+# 🧠 二、個股雙向【作多與作空】穩定作戰指揮中心
 # ==============================================================================
 def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_val, d_val, macd_hist):
-    st.markdown("### 🔮 個股專屬作戰指揮中心：雙向多空佈局與進出場策略")
+    st.markdown("### 🔮 個股專屬作戰指揮中心：雙向多空佈局與穩健進出場策略")
     
-    # 計算多方作戰參數
-    entry_long = round(max(bb_lower, ma20 * 0.99), 2)
-    sl_long = round(entry_long * 0.97, 2)
+    # 穩定參數計算（結合月線與布林通道極值）
+    entry_long = round(max(bb_lower, ma20 * 0.98), 2)
+    sl_long = round(entry_long * 0.96, 2)
     tp_long = round(bb_upper, 2)
     
-    # 計算空方作戰參數
-    entry_short = round(min(bb_upper, ma20 * 1.01), 2)
-    sl_short = round(entry_short * 1.03, 2)
+    entry_short = round(min(bb_upper, ma20 * 1.02), 2)
+    sl_short = round(entry_short * 1.04, 2)
     tp_short = round(bb_lower, 2)
 
-    # 顯示目前技術趨勢研判
-    if price >= ma20:
-        st.success(f"🟢 【技術結構研判：目前站穩 20 日生命線之上，偏多架構運作中】")
-    else:
-        st.error(f"🔴 【技術結構研判：目前跌破 20 日生命線之下，偏空結構主導中】")
+    # 顯示穩定指標研判狀態
+    col_i1, col_i2, col_i3 = st.columns(3)
+    col_i1.metric("月線趨勢 (MA20)", f"{ma20:,.2f} 元", "多空分水嶺" if price >= ma20 else "空方壓制區")
+    col_i2.metric("RSI 強弱指標", f"{rsi:.1f}", "超賣回檔" if rsi < 30 else ("過熱警戒" if rsi > 70 else "常態震盪"))
+    col_i3.metric("MACD 動能", f"{macd_hist:.2f}", "多方擴增" if macd_hist > 0 else "空方擴增", delta_color="normal" if macd_hist > 0 else "inverse")
 
     st.markdown("---")
     
     # 呈現作多作戰計畫
-    st.markdown("#### 🚀 方案一：【多方作戰計畫 (LONG)】")
+    st.markdown("#### 🚀 方案一：【多方穩健作戰計畫 (LONG)】")
     c1, c2, c3 = st.columns(3)
     c1.markdown(f"**🎯 建議進場買進價**\n<div class='custom-box text-red'>{entry_long} 元</div>", unsafe_allow_html=True)
     c2.markdown(f"**🛡️ 多單停損防線**\n<div class='custom-box text-white'>{sl_long} 元</div>", unsafe_allow_html=True)
     c3.markdown(f"**🏆 多單停利目標**\n<div class='custom-box text-red'>{tp_long} 元</div>", unsafe_allow_html=True)
-    st.caption("💡 **多單執行要領**：可在拉回靠近布林下軌或月線支撐附近分批承接，突破前高或觸及布林上軌時確實執行獲利停利。")
+    st.caption("💡 **穩定操盤邏輯**：當 RSI 偏低或拉回至布林下軌附近尋求支撐時承接；若跌破停損防線嚴格出場，觸及布林上軌確實獲利放口袋。")
 
     st.markdown("---")
 
     # 呈現作空作戰計畫
-    st.markdown("#### 🚨 方案二：【空方作戰計畫 (SHORT)】")
+    st.markdown("#### 🚨 方案二：【空方穩健作戰計畫 (SHORT)】")
     c4, c5, c6 = st.columns(3)
     c4.markdown(f"**🎯 建議放空進場價**\n<div class='custom-box text-green'>{entry_short} 元</div>", unsafe_allow_html=True)
     c5.markdown(f"**🛡️ 空單停損防線**\n<div class='custom-box text-white'>{sl_short} 元</div>", unsafe_allow_html=True)
     c6.markdown(f"**🏆 空單回補停利**\n<div class='custom-box text-green'>{tp_short} 元</div>", unsafe_allow_html=True)
-    st.caption("💡 **空單執行要領**：可在反彈靠近月線反壓或布林上軌遇壓時試單佈局，跌至布林下軌附近時應迅速回補停利。")
+    st.caption("💡 **穩定操盤邏輯**：當股價反彈至月線或布林上軌遇壓，且 MACD 綠柱擴大時順勢佈局；跌至布林下軌時迅速回補入袋。")
 
 # ==============================================================================
 # 📊 三、Matplotlib 進階金融美化圖表渲染器
@@ -190,18 +189,6 @@ def process_market_dashboard(current_date_str):
     render_custom_metric(col4, "外資淨未平倉 (口)", "-92,241", "↓ -2,719 口 (加減碼)", is_positive=False)
     render_custom_metric(col5, "散戶淨未平倉 (口)", "10,372", "↓ -2,541 口 (加減碼)", is_positive=False)
 
-    st.markdown("#### 💰 現貨三大法人與官股動向 (單位：億元 / 萬張)")
-    
-    r1, r2, r3 = st.columns(3)
-    render_custom_metric(r1, "三大法人買賣超", "-1,402.2 億", "賣超調節", is_positive=False)
-    render_custom_metric(r2, "外資買賣超", "-1,124.7 億", "外資大舉匯出", is_positive=False)
-    render_custom_metric(r3, "投信買賣超", "+236.2 億", "投信持續護航", is_positive=True)
-
-    r4, r5, r6 = st.columns(3)
-    render_custom_metric(r4, "自營商買賣超", "-513.7 億", "自營同步減碼", is_positive=False)
-    render_custom_metric(r5, "官股護盤買賣超", "+52.14 億", "公股積極護盤", is_positive=True)
-    render_custom_metric(r6, "融資變動 / 融券變動", "-104.43 億 / +0.8 萬張", "散戶斷頭融資大減")
-
     st.markdown("---")
     st.markdown("### 🤖 終極操盤大腦：今日大盤多空佈局指標")
     
@@ -215,10 +202,7 @@ def process_market_dashboard(current_date_str):
     st.warning("""
     🛡️ **【大盤操盤戰術總結】：**
     * **多空定調：明確偏空**。目前加權指數大幅跌破 20 日生命線，且外資期貨空單維持在高檔，現貨同步調節。
-    * **操作策略：**
-      1. **現貨部分**：全面收縮多頭部位，不宜盲目逢低接刀，建議保留高現金比例。
-      2. **期貨部分**：以**反彈逢高佈局空單**或**買進避險**為主要策略，嚴格依據均線作為防守停損點。
-      3. **留倉過夜**：不建議抱多單過夜；空單若符合順勢獲利狀態，可保留底倉過夜續抱。
+    * **操作策略：** 以反彈逢高佈局空單或買進避險為主，嚴格依據均線作為防守停損點。
     """)
 
 # ==============================================================================
