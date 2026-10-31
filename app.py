@@ -15,7 +15,7 @@ import yfinance as yf
 st.set_page_config(page_title="台指期貨現貨終極操盤儀表板 - 台新旗艦版", layout="centered")
 
 st.title("📈 台指期貨現貨終極操盤儀表板")
-st.caption("🚀 台新旗艦完全體：支援自選 Watchlist、進階技術指標 (KD/MACD/布林通道)、明確多空佈局指示與專業籌碼日報")
+st.caption("🚀 台新旗艦完全體：支援自選 Watchlist、進階技術指標 (KD/MACD/布林通道)、個股明確多空佈局指示與專業籌碼日報")
 
 # 側邊欄：自選股專屬 Watchlist 快速選單
 st.sidebar.header("📌 自選股 Watchlist 快速清單")
@@ -36,10 +36,10 @@ st.sidebar.markdown("---")
 st.sidebar.info("💡 **提示**：您也可以在下方主畫面輸入框直接查詢任意台美股、期貨或黃金代號。")
 
 # ==============================================================================
-# 🧠 二、個股操盤大腦、進出場價與【留倉過夜防護】核心
+# 🧠 二、個股明確多空佈局指揮中心與【留倉過夜防護】核心
 # ==============================================================================
 def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_val, d_val, macd_hist):
-    st.markdown("### 🔮 標的雙向操盤、進出場價位與【留倉過夜防護】指南：")
+    st.markdown("### 🔮 個股專屬作戰指揮中心：明確多空佈局與留倉護航")
     
     # 計算智慧進出場價位建議
     entry_long_price = round(max(bb_lower, ma20 * 0.99), 2)
@@ -50,44 +50,63 @@ def render_trading_guide(rsi, price, open_p, ma5, ma20, bb_lower, bb_upper, k_va
     stop_loss_short = round(entry_short_price * 1.03, 2)
     target_short_price = round(bb_lower, 2)
 
-    # 狀態 1：買進做多訊號
+    # 狀態 1：明確多方佈局 (LONG)
     if rsi < 45 and price > open_p and (k_val > d_val or macd_hist > 0):
-        st.success("🟩【 燈號：🚀 強烈適合買進做多 (LONG) 🚀 】")
-        st.write("➡️ **操盤提示**：價格在低檔打底，KD黃金交叉或MACD動能轉強，多頭主力帶頭反擊，高勝率轉折買點出現！")
+        st.success("🟩【 佈局方向：🚀 強烈偏多佈局 (LONG) 🚀 】")
         
-        col_p1, col_p2, col_p3 = st.columns(3)
-        col_p1.metric("🎯 建議進場買進價", f"{entry_long_price} 元")
-        col_p2.metric("🛡️ 多單停損防線", f"{stop_loss_long} 元", delta="跌破即出場", delta_color="inverse")
-        col_p3.metric("🏆 建議獲利目標價", f"{target_long_price} 元 (布林上軌)")
-        
-        st.write("🛡️ **【留倉過夜建議】：可安心多單留倉**。底部防守點清晰，只要隔日開盤不跌破此防線，即可續抱過夜。")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🎯 建議買進價位", f"{entry_long_price} 元")
+        c2.metric("🛡️ 停損防線 (嚴格執行)", f"{stop_loss_long} 元", delta="跌破即出場", delta_color="inverse")
+        c3.metric("🏆 獲利目標價位", f"{target_long_price} 元 (布林上軌)")
+
+        st.write("""
+        * **操盤邏輯**：價格在低檔成功打底，技術面出現多方轉折訊號（KD黃金交叉或MACD翻多），多頭主力開始介入。
+        * **部位與留倉**：建議配置 **50% ~ 70% 資金** 偏多操作。只要隔日開盤不跌破停損防線，**可安心多單留倉**。
+        """)
         return
 
-    # 狀態 2：超賣築底等待訊號
+    # 狀態 2：超賣區（等待止跌）
     if rsi < 30:
-        st.warning("🟨【 燈號：雖然弱勢，但已進入超賣區，不可盲目追空 】")
-        st.write("➡️ **操盤提示**：短線跌幅已大（RSI過低），極易引發高槓桿軋空反彈！請靜待止跌紅K出現再進場。")
-        st.write(f"💡 **極短線佈局參考**：若觸及布林下軌 **{bb_lower:.2f} 元** 附近可考慮逢低分批試單，停損設在其下方 2%。")
-        st.write("🛡️ **【留倉過夜建議】：不宜抱空單留倉**。超賣區隨時有跌深強彈風險，建議空手過夜。")
+        st.warning("🟨【 佈局方向：⏳ 超賣警戒，暫時觀望等待止跌 】")
+        
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🎯 試單佈局參考", f"{bb_lower:.2f} 元 (布林下軌)")
+        c2.metric("🛡️ 試單停損防線", f"{round(bb_lower * 0.98, 2)} 元")
+        c3.metric("🏆 預期反彈目標", f"{ma20:.2f} 元 (月線)")
+
+        st.write("""
+        * **操盤邏輯**：短線跌幅過劇（RSI低於30），雖然隨時有強彈機會，但尚未出現明確多方表態，切勿盲目追空。
+        * **部位與留倉**：建議**空手或僅保留 20% 極短線資金** 試單。不宜抱空單過夜，慎防跌深反彈割肉。
+        """)
         return
 
-    # 狀態 3：強烈適合放空訊號
+    # 狀態 3：明確空方佈局 (SHORT)
     if price < ma20 and macd_hist < 0:
-        st.error("🟥【 燈號：強烈適合放空 (SHORT) 🚨 】")
-        st.write("➡️ **操盤提示**：價格已收破 20 日生命線且MACD綠柱擴大，中期趨勢全面轉空，符合放空標準！")
+        st.error("🟥【 佈局方向：🚨 強烈偏空佈局 / 順勢放空 (SHORT) 🚨 】")
         
-        col_s1, col_s2, col_s3 = st.columns(3)
-        col_s1.metric("🎯 建議放空進場價", f"{entry_short_price} 元")
-        col_s2.metric("🛡️ 空單停損防線", f"{stop_loss_short} 元", delta="突破即回補", delta_color="inverse")
-        col_s3.metric("🏆 建議回補目標價", f"{target_short_price} 元 (布林下軌)")
-        
-        st.write("🛡️ **【留倉過夜建議】：可考慮空單留倉或順勢做空**。中空格局未破前可安心抱單過夜。")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🎯 建議放空價位", f"{entry_short_price} 元")
+        c2.metric("🛡️ 回補停損防線", f"{stop_loss_short} 元", delta="突破即回補", delta_color="inverse")
+        c3.metric("🏆 回補目標價位", f"{target_short_price} 元 (布林下軌)")
+
+        st.write("""
+        * **操盤邏輯**：股價已經正式跌破 20 日生命線且 MACD 綠柱擴大，中期空方結構確立，屬於標準弱勢標的。
+        * **部位與留倉**：建議配置 **40% ~ 50% 資金** 進行反彈偏空操作。只要月線反壓不破，**可安心空單留倉過夜**。
+        """)
         return
 
-    # 狀態 4：常態橫盤震盪續抱
-    st.success("🟩【 燈號：尚未符合放空標準、常態持倉續抱 】")
-    st.write("➡️ **操盤提示**：價格穩守在 20 日生命線之上，多頭大戶籌碼未潰散。原本持有的多單可繼續留倉續抱。")
-    st.write(f"🛡️ **【留倉過夜建議】：原多單可續抱留倉**。月線支撐防線在 **{ma20:.2f} 元**，只要守住大可放心過夜。")
+    # 狀態 4：常態橫盤續抱
+    st.success("🟩【 佈局方向：🛡️ 多頭架構未破，續抱原部位 (HOLD) 】")
+    
+    c1, c2, c3 = st.columns(3)
+    c1.metric("🎯 目前操作建議", "續抱 / 逢回低接")
+    c2.metric("🛡️ 月線防守支撐", f"{ma20:.2f} 元")
+    c3.metric("🏆 前高壓防線", f"{bb_upper:.2f} 元")
+
+    st.write(f"""
+    * **操盤邏輯**：股價穩穩站在 20 日生命線（{ma20:.2f} 元）之上，多方格局正常運作，沒有轉空訊號。
+    * **部位與留倉**：原本持有的多單可以繼續續抱，只要守住月線支撐，大可放心過夜。
+    """)
 
 # ==============================================================================
 # 📊 三、Matplotlib 進階技術圖表渲染器 (含布林通道)
@@ -147,7 +166,6 @@ def process_market_dashboard(current_date_str):
     st.markdown("---")
     st.markdown("### 🤖 終極操盤大腦：今日大盤多空佈局指標")
     
-    # 明確佈局方向指示牌
     col_dir1, col_dir2, col_dir3 = st.columns(3)
     col_dir1.metric("🎯 建議佈局方向", "🟥 偏空 / 順勢避險", "空方絕對主導")
     col_dir2.metric("🛡️ 建議持倉水位", "20% ~ 30%", "宜保持高現金比例")
@@ -155,7 +173,7 @@ def process_market_dashboard(current_date_str):
 
     st.error("""
     🔥 **【大盤操盤戰術總結】：**
-    * **多空定調：明確偏空**。目前加權指數大幅跌破 20 日生命線，且外資期貨空單維持在 -9 萬口以上的極端歷史高位，現貨更單日重砍千億元[cite: 8]。
+    * **多空定調：明確偏空**。目前加權指數大幅跌破 20 日生命線，且外資期貨空單維持在 -9 萬口以上的極端歷史高位，現貨更單日重砍千億元。
     * **操作策略：**
       1. **現貨部分**：請全面收縮多頭部位，不宜盲目逢低拉回接刀，建議保留 70% 以上現金。
       2. **期貨部分**：以**反彈逢高佈局空單**或**買進避險 Put** 為主要策略，嚴格依據 5 日線與月線作為防守停損點。
@@ -282,7 +300,6 @@ def process_stock_dashboard(stock_number):
     
     draw_chart(df)
     
-    local_min = min(float(today_data['Low']), float(prev_data['Low']))
     render_trading_guide(t_rsi, t_price, t_open, t_ma5, t_ma20, t_bb_lower, t_bb_upper, t_k, t_d, t_macd_hist)
 
 # ==============================================================================
